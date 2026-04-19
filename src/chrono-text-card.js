@@ -3,9 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.0.4';
+const CARD_VERSION = '0.0.5';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.0.5: toggle-field back to horizontal (matches compass), remove toggle-field-switch,
+//         row-show margins match compass field-toggles-grid, Add button as plain styled button
 // v0.0.4: Fix panel header vertical centering (remove *:first-child rules, use
 //         margin-top on row-name instead), fix toggle-field back to column,
 //         add toggle-field-switch for ha-switch horizontal layout
@@ -124,7 +126,7 @@ function ctTextField(label, value, onChange, opts = {}) {
 // ─── ctToggleField ────────────────────────────────────────────────────────────
 function ctToggleField(label, checked, onChange, extraClass = '') {
   return html`
-    <div class="toggle-field-switch ${extraClass}">
+    <div class="toggle-field ${extraClass}">
       <label>${label}</label>
       <ha-switch .checked=${checked} @change=${onChange}></ha-switch>
     </div>
@@ -390,10 +392,11 @@ class ChronoTextCardEditor extends LitElement {
     }
 
     .row-show {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 28px;
+      margin-bottom: 16px;
     }
 
     .row-content {
@@ -476,27 +479,12 @@ class ChronoTextCardEditor extends LitElement {
 
     .toggle-field {
       display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-    }
-
-    .toggle-field label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--secondary-text-color);
-      margin-bottom: 4px;
-    }
-
-    /* ── Switch fields (label left, switch right) ──────────────────────────── */
-
-    .toggle-field-switch {
-      display: flex;
       flex-direction: row;
       gap: 12px;
       align-items: center;
     }
 
-    .toggle-field-switch label {
+    .toggle-field label {
       font-size: 12px;
       font-weight: 600;
       color: var(--secondary-text-color);
@@ -516,16 +504,32 @@ class ChronoTextCardEditor extends LitElement {
       padding-top: 10px;
     }
 
-    /* ── Add field button ──────────────────────────────────────────────────── */
+    /* ── Add / Remove field buttons ────────────────────────────────────────── */
 
     .add-field-row {
       display: flex;
-      justify-content: flex-start;
+      justify-content: center;
       margin-top: 12px;
+      margin-bottom: 4px;
     }
 
-    .add-field-row mwc-button {
-      --mdc-theme-primary: var(--primary-color);
+    .add-field-btn {
+      background: none;
+      border: none;
+      color: var(--primary-color);
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: inherit;
+      letter-spacing: 0.0892857em;
+      text-transform: uppercase;
+      height: 36px;
+      padding: 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .add-field-btn:hover {
+      background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
     }
 
     /* ── Expansion panel header (remove button) ────────────────────────────── */
@@ -677,7 +681,7 @@ class ChronoTextCardEditor extends LitElement {
       <!-- ── Add field button ──────────────────────────────────────────────── -->
 
       <div class="add-field-row">
-        <mwc-button @click=${this._addField}>+ Add field</mwc-button>
+        <button class="add-field-btn" @click=${this._addField}>+ Add field</button>
       </div>
 
     `;
