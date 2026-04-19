@@ -3,9 +3,12 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.0.3';
+const CARD_VERSION = '0.0.4';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.0.4: Fix panel header vertical centering (remove *:first-child rules, use
+//         margin-top on row-name instead), fix toggle-field back to column,
+//         add toggle-field-switch for ha-switch horizontal layout
 // v0.0.3: Fix panel spacing, toggle-field layout horizontal, show on own row,
 //         text align button group top-aligned with padding-top in text row
 // v0.0.2: label→name, add show toggle, content on full row, typography reorder,
@@ -121,7 +124,7 @@ function ctTextField(label, value, onChange, opts = {}) {
 // ─── ctToggleField ────────────────────────────────────────────────────────────
 function ctToggleField(label, checked, onChange, extraClass = '') {
   return html`
-    <div class="toggle-field ${extraClass}">
+    <div class="toggle-field-switch ${extraClass}">
       <label>${label}</label>
       <ha-switch .checked=${checked} @change=${onChange}></ha-switch>
     </div>
@@ -351,14 +354,6 @@ class ChronoTextCardEditor extends LitElement {
       margin-top: 8px;
     }
 
-    ha-expansion-panel > *:first-child {
-      margin-top: 16px;
-    }
-
-    ha-expansion-panel + ha-expansion-panel > *:first-child {
-      margin-top: 24px;
-    }
-
     /* ── Grid rows ─────────────────────────────────────────────────────────── */
 
     .row-bg-shadow {
@@ -390,6 +385,7 @@ class ChronoTextCardEditor extends LitElement {
       grid-template-columns: 1fr;
       gap: 8px;
       align-items: end;
+      margin-top: 16px;
       margin-bottom: 8px;
     }
 
@@ -480,12 +476,27 @@ class ChronoTextCardEditor extends LitElement {
 
     .toggle-field {
       display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .toggle-field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+      margin-bottom: 4px;
+    }
+
+    /* ── Switch fields (label left, switch right) ──────────────────────────── */
+
+    .toggle-field-switch {
+      display: flex;
       flex-direction: row;
       gap: 12px;
       align-items: center;
     }
 
-    .toggle-field label {
+    .toggle-field-switch label {
       font-size: 12px;
       font-weight: 600;
       color: var(--secondary-text-color);
