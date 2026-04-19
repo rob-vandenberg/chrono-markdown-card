@@ -3,9 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.0.5';
+const CARD_VERSION = '0.0.6';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.0.6: Add button-picker-field class (column layout) for ctButtonPicker,
+//         toggle-field-in-text-row now targets button-picker-field
 // v0.0.5: toggle-field back to horizontal (matches compass), remove toggle-field-switch,
 //         row-show margins match compass field-toggles-grid, Add button as plain styled button
 // v0.0.4: Fix panel header vertical centering (remove *:first-child rules, use
@@ -152,7 +154,7 @@ function ctColorPicker(label, value, onChange) {
 // ─── ctButtonPicker ───────────────────────────────────────────────────────────
 function ctButtonPicker(label, value, options, onChange, align = '', extraClass = '') {
   return html`
-    <div class="toggle-field ${extraClass}" style=${align === 'end' ? 'justify-self:end' : ''}>
+    <div class="button-picker-field ${extraClass}" style=${align === 'end' ? 'justify-self:end' : ''}>
       <label>${label}</label>
       <chrono-tc-button-toggle-group
         .value=${value}
@@ -475,7 +477,7 @@ class ChronoTextCardEditor extends LitElement {
       flex: 1;
     }
 
-    /* ── Toggle fields ─────────────────────────────────────────────────────── */
+    /* ── Toggle fields (ha-switch: label left, switch right) ───────────────── */
 
     .toggle-field {
       display: flex;
@@ -490,14 +492,24 @@ class ChronoTextCardEditor extends LitElement {
       color: var(--secondary-text-color);
     }
 
+    /* ── Button picker fields (label top, buttons below) ───────────────────── */
+
+    .button-picker-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .button-picker-field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary-text-color);
+    }
+
     /* ── Button picker in a text-field row (needs top alignment + padding) ── */
 
     .toggle-field-in-text-row {
       align-self: flex-start;
-    }
-
-    .toggle-field-in-text-row label {
-      margin-bottom: 4px;
     }
 
     .toggle-field-in-text-row chrono-tc-button-toggle-group {
