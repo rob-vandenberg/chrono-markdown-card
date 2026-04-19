@@ -3,9 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.0.2';
+const CARD_VERSION = '0.0.3';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.0.3: Fix panel spacing, toggle-field layout horizontal, show on own row,
+//         text align button group top-aligned with padding-top in text row
 // v0.0.2: label→name, add show toggle, content on full row, typography reorder,
 //         border reorder, border style as plain text field, card bg default transparent
 // v0.0.1: Full editor UI, card render, numeric field handling, DEFAULT_FIELD.background_color fix
@@ -143,9 +145,9 @@ function ctColorPicker(label, value, onChange) {
 }
 
 // ─── ctButtonPicker ───────────────────────────────────────────────────────────
-function ctButtonPicker(label, value, options, onChange, align = '') {
+function ctButtonPicker(label, value, options, onChange, align = '', extraClass = '') {
   return html`
-    <div class="toggle-field" style=${align === 'end' ? 'justify-self:end' : ''}>
+    <div class="toggle-field ${extraClass}" style=${align === 'end' ? 'justify-self:end' : ''}>
       <label>${label}</label>
       <chrono-tc-button-toggle-group
         .value=${value}
@@ -343,6 +345,20 @@ class ChronoTextCardEditor extends LitElement {
 
   static styles = css`
 
+    /* ── Expansion panel spacing ───────────────────────────────────────────── */
+
+    ha-expansion-panel {
+      margin-top: 8px;
+    }
+
+    ha-expansion-panel > *:first-child {
+      margin-top: 16px;
+    }
+
+    ha-expansion-panel + ha-expansion-panel > *:first-child {
+      margin-top: 24px;
+    }
+
     /* ── Grid rows ─────────────────────────────────────────────────────────── */
 
     .row-bg-shadow {
@@ -369,11 +385,18 @@ class ChronoTextCardEditor extends LitElement {
       margin-bottom: 8px;
     }
 
-    .row-name-show {
+    .row-name {
       display: grid;
-      grid-template-columns: 3fr 1fr;
+      grid-template-columns: 1fr;
       gap: 8px;
       align-items: end;
+      margin-bottom: 8px;
+    }
+
+    .row-show {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
       margin-bottom: 8px;
     }
 
@@ -417,12 +440,14 @@ class ChronoTextCardEditor extends LitElement {
     .text-field {
       display: flex;
       flex-direction: column;
+      gap: 4px;
+      min-width: 0;
     }
 
     .text-field label {
       font-size: 12px;
+      font-weight: 600;
       color: var(--secondary-text-color);
-      margin-bottom: 2px;
     }
 
     /* ── Color picker row ──────────────────────────────────────────────────── */
@@ -455,14 +480,29 @@ class ChronoTextCardEditor extends LitElement {
 
     .toggle-field {
       display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
+      flex-direction: row;
+      gap: 12px;
+      align-items: center;
     }
 
     .toggle-field label {
       font-size: 12px;
+      font-weight: 600;
       color: var(--secondary-text-color);
-      margin-bottom: 2px;
+    }
+
+    /* ── Button picker in a text-field row (needs top alignment + padding) ── */
+
+    .toggle-field-in-text-row {
+      align-self: flex-start;
+    }
+
+    .toggle-field-in-text-row label {
+      margin-bottom: 4px;
+    }
+
+    .toggle-field-in-text-row chrono-tc-button-toggle-group {
+      padding-top: 10px;
     }
 
     /* ── Add field button ──────────────────────────────────────────────────── */
@@ -573,18 +613,22 @@ class ChronoTextCardEditor extends LitElement {
             >✕</button>
           </div>
 
-          <!-- Row 1: Name / Show -->
-          <div class="row-name-show">
+          <!-- Row 1: Name (full width) -->
+          <div class="row-name">
             ${ctTextField('Name', field.name, e => this._fieldChanged(index, 'name', e))}
+          </div>
+
+          <!-- Row 2: Show toggle -->
+          <div class="row-show">
             ${ctToggleField('Show', field.show ?? true, e => this._fieldToggled(index, 'show', e))}
           </div>
 
-          <!-- Row 2: Content (full width) -->
+          <!-- Row 3: Content (full width) -->
           <div class="row-content">
             ${ctTextField('Content (HTML / Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
           </div>
 
-          <!-- Row 3: Colors -->
+          <!-- Row 4 (was 3): Colors -->
           <div class="row-colors">
             ${ctColorPicker('Color', field.color, e => this._fieldChanged(index, 'color', e))}
             <div></div>
@@ -592,15 +636,15 @@ class ChronoTextCardEditor extends LitElement {
             <div></div>
           </div>
 
-          <!-- Row 4: Typography — font size, font weight, line height, text align -->
+          <!-- Row 5 (was 4): Typography — font size, font weight, line height, text align -->
           <div class="row-typography">
             ${ctTextField('Font size (em)',  field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
             ${ctTextField('Font weight',     field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
             ${ctTextField('Line height',     field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
-            ${ctButtonPicker('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e))}
+            ${ctButtonPicker('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e), '', 'toggle-field-in-text-row')}
           </div>
 
-          <!-- Row 5: Border — color, width, radius, style -->
+          <!-- Row 6 (was 5): Border — color, width, radius, style -->
           <div class="row-border">
             ${ctColorPicker('Border color', field.border_color, e => this._fieldChanged(index, 'border_color', e))}
             ${ctTextField('Width (px)',   field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
@@ -608,7 +652,7 @@ class ChronoTextCardEditor extends LitElement {
             ${ctTextField('Style',       field.border_style,  e => this._fieldChanged(index, 'border_style',  e))}
           </div>
 
-          <!-- Row 6: Padding -->
+          <!-- Row 7 (was 6): Padding -->
           <div class="row-padding">
             ${ctTextField('Padding top (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
             ${ctTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
