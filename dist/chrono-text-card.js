@@ -3,9 +3,12 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.0.0';
+const CARD_VERSION = '0.0.2';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.0.2: label→name, add show toggle, content on full row, typography reorder,
+//         border reorder, border style as plain text field, card bg default transparent
+// v0.0.1: Full editor UI, card render, numeric field handling, DEFAULT_FIELD.background_color fix
 // v0.0.0: Initial skeleton — imports, version, constants, helper classes, empty editor and card classes
 
 // ─── Console log ──────────────────────────────────────────────────────────────
@@ -17,13 +20,15 @@ console.info(
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const DEFAULT_FIELD = {
-  label:            '',
+  name:             '',
+  show:             true,
   content:          '',
   color:            '#ffffff',
   font_size:        1.0,
   font_weight:      400,
   text_align:       'left',
-  background_color: 'transparent',
+  line_height:      1.4,
+  background_color: '#00000000',
   border_width:     0,
   border_style:     'solid',
   border_color:     '#444444',
@@ -32,11 +37,10 @@ const DEFAULT_FIELD = {
   padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
-  line_height:      1.4,
 };
 
 const DEFAULT_CONFIG = {
-  background_color: '#1c1c1c',
+  background_color: '#00000000',
   border_width:     1,
   border_style:     'solid',
   border_color:     '#444444',
@@ -49,7 +53,7 @@ const DEFAULT_CONFIG = {
   fields: [
     {
       ...DEFAULT_FIELD,
-      label:        'Title',
+      name:         'Title',
       content:      'Title',
       color:        '#aaaaaa',
       font_size:    1.1,
@@ -59,7 +63,7 @@ const DEFAULT_CONFIG = {
     },
     {
       ...DEFAULT_FIELD,
-      label:        'Content',
+      name:         'Content',
       content:      'Content',
       color:        '#3498db',
       font_size:    1.5,
@@ -69,9 +73,22 @@ const DEFAULT_CONFIG = {
   ],
 };
 
+// ─── Numeric keys ─────────────────────────────────────────────────────────────
+// Used by _valueChanged and _fieldChanged to decide whether to parse as number.
+const NUMERIC_CONFIG_KEYS = new Set([
+  'border_width', 'border_radius',
+  'padding_top', 'padding_bottom', 'padding_left', 'padding_right',
+]);
+
+const NUMERIC_FIELD_KEYS = new Set([
+  'font_size', 'font_weight', 'line_height',
+  'border_width', 'border_radius',
+  'padding_top', 'padding_bottom', 'padding_left', 'padding_right',
+]);
+
 // ─── ctParseNumber ────────────────────────────────────────────────────────────
 // Mirrors ha-form-float._handleInput logic exactly.
-// Returns the parsed number, undefined if the value is incomplete/invalid,
+// Returns the parsed number, undefined if the value is empty,
 // or null to signal "return early, do not fire config-changed".
 function ctParseNumber(raw) {
   const v = String(raw).replace(',', '.');
@@ -272,14 +289,40 @@ class ChronoTextCardEditor extends LitElement {
 
   _valueChanged(key, e) {
     if (!this._config) return;
-    const value = e.target.value ?? e.detail?.value;
+    const raw = e.target.value ?? e.detail?.value;
+    let value;
+    if (NUMERIC_CONFIG_KEYS.has(key)) {
+      const parsed = ctParseNumber(raw);
+      if (parsed === null)      return;
+      if (parsed === undefined) value = DEFAULT_CONFIG[key];
+      else                      value = parsed;
+    } else {
+      value = raw;
+    }
     this._config = { ...this._config, [key]: value };
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
   }
 
   _fieldChanged(index, key, e) {
     if (!this._config) return;
-    const value  = e.target.value ?? e.detail?.value;
+    const raw = e.target.value ?? e.detail?.value;
+    let value;
+    if (NUMERIC_FIELD_KEYS.has(key)) {
+      const parsed = ctParseNumber(raw);
+      if (parsed === null)      return;
+      if (parsed === undefined) value = DEFAULT_FIELD[key];
+      else                      value = parsed;
+    } else {
+      value = raw;
+    }
+    const fields = this._config.fields.map((f, i) => i === index ? { ...f, [key]: value } : f);
+    this._config = { ...this._config, fields };
+    this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
+  }
+
+  _fieldToggled(index, key, e) {
+    if (!this._config) return;
+    const value  = e.target.checked;
     const fields = this._config.fields.map((f, i) => i === index ? { ...f, [key]: value } : f);
     this._config = { ...this._config, fields };
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
@@ -287,7 +330,7 @@ class ChronoTextCardEditor extends LitElement {
 
   _addField() {
     const index  = (this._config.fields ?? []).length;
-    const fields = [...(this._config.fields ?? []), { ...DEFAULT_FIELD, label: `Field ${index + 1}` }];
+    const fields = [...(this._config.fields ?? []), { ...DEFAULT_FIELD, name: `Field ${index + 1}` }];
     this._config = { ...this._config, fields };
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
   }
@@ -299,13 +342,290 @@ class ChronoTextCardEditor extends LitElement {
   }
 
   static styles = css`
-    /* Editor styles — to be filled in */
+
+    /* ── Grid rows ─────────────────────────────────────────────────────────── */
+
+    .row-bg-shadow {
+      display: grid;
+      grid-template-columns: 3fr 1fr 3fr 1fr;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 8px;
+    }
+
+    .row-border {
+      display: grid;
+      grid-template-columns: 3fr 1fr 1fr 1fr;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 8px;
+    }
+
+    .row-padding {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 8px;
+    }
+
+    .row-name-show {
+      display: grid;
+      grid-template-columns: 3fr 1fr;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 8px;
+    }
+
+    .row-content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 8px;
+    }
+
+    .row-colors {
+      display: grid;
+      grid-template-columns: 3fr 1fr 3fr 1fr;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 8px;
+    }
+
+    .row-typography {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 8px;
+    }
+
+    /* ── Section headings ──────────────────────────────────────────────────── */
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--secondary-text-color);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 16px 0 8px 0;
+    }
+
+    /* ── Text fields ───────────────────────────────────────────────────────── */
+
+    .text-field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .text-field label {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      margin-bottom: 2px;
+    }
+
+    /* ── Color picker row ──────────────────────────────────────────────────── */
+
+    .color-picker-row {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+    }
+
+    .color-picker-row input[type="color"] {
+      width: 40px;
+      min-width: 40px;
+      height: 56px;
+      padding: 4px;
+      border: none;
+      border-bottom: 1px solid var(--secondary-text-color, #888);
+      border-radius: 4px 4px 0 0;
+      background: var(--input-fill-color, rgba(0,0,0,0.06));
+      cursor: pointer;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    .color-picker-row chrono-tc-textfield {
+      flex: 1;
+    }
+
+    /* ── Toggle fields ─────────────────────────────────────────────────────── */
+
+    .toggle-field {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .toggle-field label {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      margin-bottom: 2px;
+    }
+
+    /* ── Add field button ──────────────────────────────────────────────────── */
+
+    .add-field-row {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 12px;
+    }
+
+    .add-field-row mwc-button {
+      --mdc-theme-primary: var(--primary-color);
+    }
+
+    /* ── Expansion panel header (remove button) ────────────────────────────── */
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .panel-header span {
+      font-size: 14px;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      padding: 4px 8px;
+      font-size: 18px;
+      line-height: 1;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .remove-btn:hover:not(:disabled) {
+      color: var(--error-color, #f44336);
+      background: rgba(244, 67, 54, 0.08);
+    }
+
+    .remove-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
   `;
+
+  // ── Option arrays (defined once, reused in render) ─────────────────────────
+  _textAlignOptions = [
+    { label: 'L', value: 'left'   },
+    { label: 'C', value: 'center' },
+    { label: 'R', value: 'right'  },
+  ];
 
   render() {
     if (!this._config) return html``;
-    // Editor UI — to be filled in
-    return html`<div>Editor placeholder</div>`;
+
+    const c      = this._config;
+    const fields = c.fields ?? [];
+
+    return html`
+
+      <!-- ── Card section ─────────────────────────────────────────────────── -->
+
+      <div class="section-title">Card</div>
+
+      <!-- Row 1: Background color / Box shadow -->
+      <div class="row-bg-shadow">
+        ${ctColorPicker('Background color', c.background_color, e => this._valueChanged('background_color', e))}
+        <div></div>
+        ${ctTextField('Box shadow', c.box_shadow, e => this._valueChanged('box_shadow', e))}
+        <div></div>
+      </div>
+
+      <!-- Row 2: Border — color, width, radius, style -->
+      <div class="row-border">
+        ${ctColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
+        ${ctTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
+        ${ctTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
+        ${ctTextField('Style', c.border_style, e => this._valueChanged('border_style', e))}
+      </div>
+
+      <!-- Row 3: Padding -->
+      <div class="row-padding">
+        ${ctTextField('Padding top (px)',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
+        ${ctTextField('Padding bottom (px)', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+        ${ctTextField('Padding left (px)',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
+        ${ctTextField('Padding right (px)',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
+      </div>
+
+      <!-- ── Fields section ───────────────────────────────────────────────── -->
+
+      <div class="section-title">Fields</div>
+
+      ${fields.map((field, index) => html`
+        <ha-expansion-panel outlined>
+
+          <div class="panel-header" slot="header">
+            <span>${field.name || `Field ${index + 1}`}</span>
+            <button
+              class="remove-btn"
+              ?disabled=${fields.length <= 1}
+              @click=${e => { e.stopPropagation(); this._removeField(index); }}
+            >✕</button>
+          </div>
+
+          <!-- Row 1: Name / Show -->
+          <div class="row-name-show">
+            ${ctTextField('Name', field.name, e => this._fieldChanged(index, 'name', e))}
+            ${ctToggleField('Show', field.show ?? true, e => this._fieldToggled(index, 'show', e))}
+          </div>
+
+          <!-- Row 2: Content (full width) -->
+          <div class="row-content">
+            ${ctTextField('Content (HTML / Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
+          </div>
+
+          <!-- Row 3: Colors -->
+          <div class="row-colors">
+            ${ctColorPicker('Color', field.color, e => this._fieldChanged(index, 'color', e))}
+            <div></div>
+            ${ctColorPicker('Background color', field.background_color, e => this._fieldChanged(index, 'background_color', e))}
+            <div></div>
+          </div>
+
+          <!-- Row 4: Typography — font size, font weight, line height, text align -->
+          <div class="row-typography">
+            ${ctTextField('Font size (em)',  field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
+            ${ctTextField('Font weight',     field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
+            ${ctTextField('Line height',     field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
+            ${ctButtonPicker('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e))}
+          </div>
+
+          <!-- Row 5: Border — color, width, radius, style -->
+          <div class="row-border">
+            ${ctColorPicker('Border color', field.border_color, e => this._fieldChanged(index, 'border_color', e))}
+            ${ctTextField('Width (px)',   field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
+            ${ctTextField('Radius (px)', field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
+            ${ctTextField('Style',       field.border_style,  e => this._fieldChanged(index, 'border_style',  e))}
+          </div>
+
+          <!-- Row 6: Padding -->
+          <div class="row-padding">
+            ${ctTextField('Padding top (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
+            ${ctTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+            ${ctTextField('Padding left (px)',   field.padding_left,   e => this._fieldChanged(index, 'padding_left',   e), { type: 'number', step: '1', min: '0' })}
+            ${ctTextField('Padding right (px)',  field.padding_right,  e => this._fieldChanged(index, 'padding_right',  e), { type: 'number', step: '1', min: '0' })}
+          </div>
+
+        </ha-expansion-panel>
+      `)}
+
+      <!-- ── Add field button ──────────────────────────────────────────────── -->
+
+      <div class="add-field-row">
+        <mwc-button @click=${this._addField}>+ Add field</mwc-button>
+      </div>
+
+    `;
   }
 }
 customElements.define('chrono-text-card-editor', ChronoTextCardEditor);
@@ -327,9 +647,9 @@ class ChronoTextCard extends LitElement {
 
   constructor() {
     super();
-    this._config      = null;
-    this._hass        = null;
-    this._fieldValues = [];
+    this._config         = null;
+    this._hass           = null;
+    this._fieldValues    = [];
     this._templateUnsubs = [];
   }
 
@@ -421,12 +741,42 @@ class ChronoTextCard extends LitElement {
 
   render() {
     if (!this._config) return html``;
+
     const c = this._config;
-    // Card and field rendering — to be filled in
+
+    const containerStyle = [
+      `background-color: ${c.background_color}`,
+      `border: ${c.border_width}px ${c.border_style} ${c.border_color}`,
+      `border-radius: ${c.border_radius}px`,
+      `padding: ${c.padding_top}px ${c.padding_right}px ${c.padding_bottom}px ${c.padding_left}px`,
+      `box-shadow: ${c.box_shadow}`,
+    ].join('; ');
+
+    const fields = c.fields ?? [];
+
     return html`
-      <div class="text-container">
+      <div class="text-container" style="${containerStyle}">
         <div class="text-layer">
-          <!-- fields rendered here -->
+          ${fields.map((field, i) => {
+            const fieldStyle = [
+              field.show === false ? 'display: none' : '',
+              `color: ${field.color}`,
+              `font-size: ${field.font_size}em`,
+              `font-weight: ${field.font_weight}`,
+              `text-align: ${field.text_align}`,
+              `line-height: ${field.line_height}`,
+              `background-color: ${field.background_color}`,
+              `border: ${field.border_width}px ${field.border_style} ${field.border_color}`,
+              `border-radius: ${field.border_radius}px`,
+              `padding: ${field.padding_top}px ${field.padding_right}px ${field.padding_bottom}px ${field.padding_left}px`,
+            ].filter(Boolean).join('; ');
+
+            return html`
+              <div class="text-field" style="${fieldStyle}">
+                ${unsafeHTML(this._fieldValues[i] ?? '')}
+              </div>
+            `;
+          })}
         </div>
       </div>
     `;
