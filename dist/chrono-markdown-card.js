@@ -1,10 +1,13 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?module';
 import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/live.js?module';
+import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.14';
+const CARD_VERSION = '0.1.15';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.15: Switch to styleMap for dynamic styles, add link color CSS rule,
+//          fix default content \n\n, empty color falls back to HA theme vars
 // v0.1.14: Update all defaults to match HA markdown card styling exactly;
 //          CmTextarea max-height 20 lines, resize: vertical
 // v0.1.12: Replace CmTextarea textarea element with contenteditable div for
@@ -89,7 +92,7 @@ const DEFAULT_CONFIG = {
       name:        'Content',
       show:        true,
       line_breaks: false,
-      content:     'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more. For more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
+      content:     'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more.\n\nFor more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
       color:       '#e0e0e0',
       font_size:   1.0,
       font_weight: 400,
@@ -890,9 +893,14 @@ class ChronoMarkdownCard extends LitElement {
     }
     .text-field {
       box-sizing: border-box;
+      color: var(--primary-text-color);
+      background-color: transparent;
     }
     ha-markdown-element {
       font-size: inherit;
+    }
+    ha-markdown-element a {
+      color: var(--markdown-link-color, var(--primary-color));
     }
     ha-markdown-element p:first-child {
       margin-top: 0;
@@ -907,35 +915,35 @@ class ChronoMarkdownCard extends LitElement {
 
     const c = this._config;
 
-    const containerStyle = [
-      `background-color: ${c.background_color}`,
-      `border: ${c.border_width}px ${c.border_style} ${c.border_color}`,
-      `border-radius: ${c.border_radius}px`,
-      `padding: ${c.padding_top}px ${c.padding_right}px ${c.padding_bottom}px ${c.padding_left}px`,
-      `box-shadow: ${c.box_shadow}`,
-    ].join('; ');
+    const containerStyles = {
+      'background-color': c.background_color || undefined,
+      'border':           `${c.border_width}px ${c.border_style} ${c.border_color}`,
+      'border-radius':    `${c.border_radius}px`,
+      'padding':          `${c.padding_top}px ${c.padding_right}px ${c.padding_bottom}px ${c.padding_left}px`,
+      'box-shadow':       c.box_shadow || undefined,
+    };
 
     const fields = c.fields ?? [];
 
     return html`
-      <div class="text-container" style="${containerStyle}">
+      <div class="text-container" style=${styleMap(containerStyles)}>
         <div class="text-layer">
           ${fields.map((field, i) => {
-            const fieldStyle = [
-              field.show === false ? 'display: none' : '',
-              `color: ${field.color}`,
-              `font-size: ${field.font_size}em`,
-              `font-weight: ${field.font_weight}`,
-              `text-align: ${field.text_align}`,
-              `line-height: ${field.line_height}`,
-              `background-color: ${field.background_color}`,
-              `border: ${field.border_width}px ${field.border_style} ${field.border_color}`,
-              `border-radius: ${field.border_radius}px`,
-              `padding: ${field.padding_top}px ${field.padding_right}px ${field.padding_bottom}px ${field.padding_left}px`,
-            ].filter(Boolean).join('; ');
+            const fieldStyles = {
+              'display':          field.show === false ? 'none' : undefined,
+              'color':            field.color            || undefined,
+              'font-size':        `${field.font_size}em`,
+              'font-weight':      `${field.font_weight}`,
+              'text-align':       field.text_align       || undefined,
+              'line-height':      `${field.line_height}`,
+              'background-color': field.background_color || undefined,
+              'border':           `${field.border_width}px ${field.border_style} ${field.border_color}`,
+              'border-radius':    `${field.border_radius}px`,
+              'padding':          `${field.padding_top}px ${field.padding_right}px ${field.padding_bottom}px ${field.padding_left}px`,
+            };
 
             return html`
-              <div class="text-field" style="${fieldStyle}">
+              <div class="text-field" style=${styleMap(fieldStyles)}>
                 <ha-markdown-element .content=${this._fieldValues[i] ?? ''} ?breaks=${field.line_breaks !== false}></ha-markdown-element>
               </div>
             `;
