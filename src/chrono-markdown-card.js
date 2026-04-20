@@ -4,9 +4,11 @@ import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/st
 import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.26';
+const CARD_VERSION = '0.1.27';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.27: Multiple small changes to the layout of the editor fields
+// v0.1.26: Multiple small changes to the layout of the editor fields
 // v0.1.25: Fix CmSelect: tab no longer opens dropdown; selected value written to
 //          input; chevron click focuses input; tab-away closes dropdown
 // v0.1.24: Replace inline cmSelectField with shadow DOM CmSelect custom element;
@@ -41,9 +43,9 @@ const CARD_VERSION = '0.1.26';
 // v0.0.6: Add button-picker-field class (column layout) for cmButtonPicker,
 //         toggle-field-in-text-row now targets button-picker-field
 // v0.0.5: toggle-field back to horizontal (matches compass), remove toggle-field-switch,
-//         row-show margins match compass field-toggles-grid, Add button as plain styled button
+//         field-show-toggles margins match compass field-toggles-grid, Add button as plain styled button
 // v0.0.4: Fix panel header vertical centering (remove *:first-child rules, use
-//         margin-top on row-name instead), fix toggle-field back to column,
+//         margin-top on field-name instead), fix toggle-field back to column,
 //         add toggle-field-switch for ha-switch horizontal layout
 // v0.0.3: Fix panel spacing, toggle-field layout horizontal, show on own row,
 //         text align button group top-aligned with padding-top in text row
@@ -68,52 +70,52 @@ const DEFAULT_FIELD = {
   color:            '',
   font_size:        1.0,
   font_weight:      400,
-  text_align:       'left',
   line_height:      1.4,
+  text_align:       'left',
   background_color: '',
-  border_width:     0,
-  border_style:     'solid',
-  border_color:     '',
-  border_radius:    12,
   padding_top:      8,
   padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
+  border_color:     '',
+  border_width:     0,
+  border_radius:    12,
+  border_style:     'solid',
 };
 
 const DEFAULT_CONFIG = {
   background_color: '',
-  border_width:     1,
-  border_style:     'solid',
-  border_color:     '',
-  border_radius:    12,
   padding_top:      8,
   padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
+  border_color:     '',
+  border_width:     1,
+  border_radius:    12,
+  border_style:     'solid',
   box_shadow:       '',
   fields: [
     {
       ...DEFAULT_FIELD,
-      name:        'Title',
-      show:        false,
-      line_breaks: false,
-      content:     'Title',
-      color:       '',
-      font_size:   1.68,
-      font_weight: 400,
-      text_align:  'left',
+      name:         'Title',
+      show:         false,
+      line_breaks:  false,
+      content:      'Title',
+      color:        '',
+      font_size:    1.68,
+      font_weight:  400,
+      text_align:   'left',
     },
     {
       ...DEFAULT_FIELD,
-      name:        'Content',
-      show:        true,
-      line_breaks: false,
-      content:     'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more.\n\nFor more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
-      color:       '',
-      font_size:   1.0,
-      font_weight: 400,
-      text_align:  'left',
+      name:         'Content',
+      show:         true,
+      line_breaks:  false,
+      content:      'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more.\n\nFor more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
+      color:        '',
+      font_size:    1.0,
+      font_weight:  400,
+      text_align:   'left',
     },
   ],
 };
@@ -706,7 +708,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
     /* ── Grid rows ─────────────────────────────────────────────────────────── */
 
-    .row-bg-shadow {
+    .card-bg-color-padding {
       display: grid;
       grid-template-columns: 11fr 4fr 4fr 4fr 4fr;
       gap: 8px;
@@ -714,7 +716,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       margin-bottom: 8px;
     }
 
-    .row-border {
+    .card-border-styling {
       display: grid;
       grid-template-columns: 12fr 5fr 5fr 8fr;
       gap: 8px;
@@ -722,15 +724,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       margin-bottom: 8px;
     }
 
-    .row-padding {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr;
-      gap: 8px;
-      align-items: end;
-      margin-bottom: 8px;
-    }
-
-    .row-name {
+    .field-name {
       display: NONE;
       grid-template-columns: 1fr;
       gap: 8px;
@@ -739,7 +733,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       margin-bottom: 8px;
     }
 
-    .row-show {
+    .field-show-toggles {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
@@ -747,7 +741,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       margin-bottom: 24px;
     }
 
-    .row-content {
+    .field-content {
       display: grid;
       grid-template-columns: 1fr;
       gap: 8px;
@@ -755,17 +749,25 @@ class ChronoMarkdownCardEditor extends LitElement {
       margin-bottom: 8px;
     }
 
-    .row-colors {
+    .field-typography {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 11fr 5fr 6fr 5fr 8fr;
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
     }
 
-    .row-typography {
+    .field-bg-color-padding {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr;
+      grid-template-columns: 11fr 4fr 4fr 4fr 4fr;
+      gap: 8px;
+      align-items: end;
+      margin-bottom: 8px;
+    }
+
+    .field-border-styling {
+      display: grid;
+      grid-template-columns: 12fr 5fr 5fr 8fr;
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
@@ -950,16 +952,16 @@ class ChronoMarkdownCardEditor extends LitElement {
       <ha-expansion-panel header="Card" outlined .expanded=${true}>
 
         <!-- Row 1: Background color / Box shadow -->
-        <div class="row-bg-shadow">
+        <div class="card-bg-color-padding">
           ${cmColorPicker('Background color\n<i>leave empty for default</i>', c.background_color, e => this._valueChanged('background_color', e))}
           ${cmTextField('Padding\ntop (px)',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Padding\nbottom (px)', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Padding\nleft (px)',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Padding\nright (px)',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding bottom (px)', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding left (px)',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding right (px)',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
         </div>
 
         <!-- Row 2: Border — color, width, radius, style -->
-        <div class="row-border">
+        <div class="card-border-styling">
           ${cmColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
           ${cmTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
           ${cmTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
@@ -983,49 +985,45 @@ class ChronoMarkdownCardEditor extends LitElement {
           </div>
 
           <!-- Row 1: Name (full width) -->
-          <div class="row-name">
+          <div class="field-name">
             ${cmTextField('Name', field.name, e => this._fieldChanged(index, 'name', e))}
           </div>
 
           <!-- Row 2: Show / Line breaks toggles -->
-          <div class="row-show">
+          <div class="field-show-toggles">
             ${cmToggleField('Show',        field.show        ?? true, e => this._fieldToggled(index, 'show',        e))}
             ${cmToggleField('Line breaks', field.line_breaks ?? true, e => this._fieldToggled(index, 'line_breaks', e))}
           </div>
 
           <!-- Row 3: Content (full width, textarea) -->
-          <div class="row-content">
-            ${cmTextArea('Content (Markdown / HTML / Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
+          <div class="field-content">
+            ${cmTextArea('Content (supports Markdown, HTML and Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
           </div>
 
           <!-- Row 4: Typography — font size, font weight, line height, text align -->
-          <div class="row-typography">
+          <div class="field-typography">
+            ${cmColorPicker('Font color', field.color, e => this._fieldChanged(index, 'color', e))}
             ${cmTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
             ${cmTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
             ${cmTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
             ${cmSelectField('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e))}
           </div>
 
-          <!-- Row 5: Colors -->
-          <div class="row-colors">
-            ${cmColorPicker('Color', field.color, e => this._fieldChanged(index, 'color', e))}
+          <!-- Row 5: Background color and padding -->
+          <div class="field-bg-color-padding">
             ${cmColorPicker('Background color', field.background_color, e => this._fieldChanged(index, 'background_color', e))}
+            ${cmTextField('Padding\ntop (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
+            ${cmTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+            ${cmTextField('Padding left (px)',   field.padding_left,   e => this._fieldChanged(index, 'padding_left',   e), { type: 'number', step: '1', min: '0' })}
+            ${cmTextField('Padding right (px)',  field.padding_right,  e => this._fieldChanged(index, 'padding_right',  e), { type: 'number', step: '1', min: '0' })}
           </div>
 
           <!-- Row 6: Border — color, width, radius, style -->
-          <div class="row-border">
+          <div class="field-border-styling">
             ${cmColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e))}
             ${cmTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
             ${cmTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
             ${cmSelectField('Style',       field.border_style,  this._borderStyleOptions, e => this._fieldChanged(index, 'border_style',  e))}
-          </div>
-
-          <!-- Row 7: Padding -->
-          <div class="row-padding">
-            ${cmTextField('Padding top (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
-            ${cmTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
-            ${cmTextField('Padding left (px)',   field.padding_left,   e => this._fieldChanged(index, 'padding_left',   e), { type: 'number', step: '1', min: '0' })}
-            ${cmTextField('Padding right (px)',  field.padding_right,  e => this._fieldChanged(index, 'padding_right',  e), { type: 'number', step: '1', min: '0' })}
           </div>
 
         </ha-expansion-panel>

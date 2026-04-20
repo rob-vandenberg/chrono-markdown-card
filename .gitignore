@@ -11,6 +11,8 @@ github/
 
 # Files
 *.bat
+*.ai
+*.psd
 gitdelete.bat
 gitremove.bat
 gitrmdir.bat

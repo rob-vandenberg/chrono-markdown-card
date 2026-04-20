@@ -1,6 +1,6 @@
-# Chrono Markdown Card for Home Assistant
-
-<div align="center">
+  <img src="art/header.png" width="800" alt="Chrono Markdown Card Banner">
+  
+ <div align="center">
   <img src="art/banner.png" width="800" alt="Chrono Markdown Card Banner">
 
   <p align="center">
@@ -17,7 +17,7 @@
 
   [![](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
   [![](https://img.shields.io/badge/License-AGPL_3.0-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/agpl-3.0)
-  [![](https://img.shields.io/badge/Version-0.1.25-brightgreen.svg?style=for-the-badge)](#)
+  [![](https://img.shields.io/badge/Version-0.1.27-brightgreen.svg?style=for-the-badge)](#)
 </div>
 
 ---
@@ -103,6 +103,10 @@ Every property — card-level and per-field — is configurable through the Love
 
 ---
 
+<img src="art/editor.png" width="800" alt="Chrono Markdown Card Editor">
+
+---
+
 ## ⚙️ Configuration
 
 ### Card Options
@@ -112,15 +116,14 @@ These properties apply to the entire card container.
 | Property | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `background_color` | string | HA theme | Card background color. Empty = HA theme default. |
-| `border_width` | number | `1` | Border width in px |
-| `border_style` | string | `solid` | Border style (`solid`, `dashed`, `dotted`, `none`, or any valid CSS value) |
-| `border_color` | string | HA theme | Border color. Empty = HA theme default. |
-| `border_radius` | number | `12` | Border radius in px |
 | `padding_top` | number | `8` | Inner padding top in px |
 | `padding_bottom` | number | `8` | Inner padding bottom in px |
 | `padding_left` | number | `8` | Inner padding left in px |
 | `padding_right` | number | `8` | Inner padding right in px |
-| `box_shadow` | string | HA theme | Box shadow. Empty = HA theme default. |
+| `border_color` | string | HA theme | Border color. Empty = HA theme default. |
+| `border_width` | number | `1` | Border width in px |
+| `border_radius` | number | `12` | Border radius in px |
+| `border_style` | string | `solid` | Border style (`solid`, `dashed`, `dotted`, `none`, or any valid CSS value) |
 
 ### Field Options
 
@@ -135,17 +138,17 @@ Each entry in the `fields` array has the following properties.
 | `color` | string | HA theme | Text color. Empty = HA theme default (`--primary-text-color`). |
 | `font_size` | number | `1.0` | Font size in em. Markdown headings (`#`, `##`, etc.) scale proportionally relative to this value. |
 | `font_weight` | number | `400` | Font weight |
-| `text_align` | string | `left` | Text alignment (`left`, `center`, `right`, or any valid CSS value) |
 | `line_height` | number | `1.4` | Line height (unitless multiplier) |
+| `text_align` | string | `left` | Text alignment (`left`, `center`, `right`, or any valid CSS value) |
 | `background_color` | string | `''` | Field background color. Empty = transparent. |
-| `border_width` | number | `0` | Border width in px |
-| `border_style` | string | `solid` | Border style |
-| `border_color` | string | HA theme | Border color. Empty = HA theme default. |
-| `border_radius` | number | `12` | Border radius in px |
 | `padding_top` | number | `8` | Padding top in px |
 | `padding_bottom` | number | `8` | Padding bottom in px |
 | `padding_left` | number | `8` | Padding left in px |
 | `padding_right` | number | `8` | Padding right in px |
+| `border_color` | string | HA theme | Border color. Empty = HA theme default. |
+| `border_width` | number | `0` | Border width in px |
+| `border_radius` | number | `12` | Border radius in px |
+| `border_style` | string | `solid` | Border style |
 
 ### Example YAML
 
