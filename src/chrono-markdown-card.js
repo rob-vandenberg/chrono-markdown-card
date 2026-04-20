@@ -3,7 +3,7 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.25';
+const CARD_VERSION = '0.1.25.1';
 
 // ─── Version History ──────────────────────────────────────────────────────────
 // v0.1.25: Fix CmSelect: tab no longer opens dropdown; selected value written to
@@ -707,7 +707,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
     .row-bg-shadow {
       display: grid;
-      grid-template-columns: 8fr 13fr;
+      grid-template-columns: 6fr 2fr 2fr 2fr 2fr;
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
@@ -950,7 +950,10 @@ class ChronoMarkdownCardEditor extends LitElement {
         <!-- Row 1: Background color / Box shadow -->
         <div class="row-bg-shadow">
           ${cmColorPicker('Background color', c.background_color, e => this._valueChanged('background_color', e))}
-          ${cmTextField('Box shadow', c.box_shadow, e => this._valueChanged('box_shadow', e))}
+          ${cmTextField('Padding top',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding bottom', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding left',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding right',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
         </div>
 
         <!-- Row 2: Border — color, width, radius, style -->
