@@ -3,9 +3,10 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.21';
+const CARD_VERSION = '0.1.22';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.22: Replace input with contenteditable div in combobox to fix width issue
 // v0.1.21: Replace CmSelect custom element with inline Lit template combobox
 //          to eliminate shadow DOM host sizing issues
 // v0.1.20: Rebuild CmSelect as styled combobox (free text + dropdown options),
@@ -210,19 +211,20 @@ function cmTextArea(label, value, onChange) {
 
 // ─── cmSelectField ────────────────────────────────────────────────────────────
 // Inline combobox — no custom element, no shadow DOM, no host sizing issues.
-// open/onToggle/onKeyDown are provided by the editor instance.
+// Uses contenteditable div instead of input to avoid browser intrinsic width.
 function cmSelectField(label, value, options, onChange, open, onToggle, onKeyDown) {
   return html`
     <div class="text-field">
       <label>${label}</label>
       <div class="combobox-wrap">
         <div class="combobox ${open ? 'combobox-open' : ''}">
-          <input
-            .value=${live(String(value ?? ''))}
-            @input=${onChange}
+          <div
+            class="combobox-input"
+            contenteditable="true"
+            @input=${e => onChange({ target: { value: e.target.innerText.trim() }, detail: { value: e.target.innerText.trim() } })}
             @keydown=${onKeyDown}
             @focus=${onToggle}
-          >
+          >${value ?? ''}</div>
           <div class="combobox-chevron" @click=${onToggle} aria-hidden="true">▾</div>
         </div>
         ${open ? html`
@@ -669,7 +671,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       border-bottom: 2px solid var(--primary-color);
     }
 
-    .combobox input {
+    .combobox-input {
       flex: 1;
       height: 100%;
       padding: 0 8px 0 12px;
@@ -679,6 +681,11 @@ class ChronoMarkdownCardEditor extends LitElement {
       font-size: 16px;
       font-family: inherit;
       outline: none;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      white-space: nowrap;
+      cursor: text;
     }
 
     .combobox-chevron {
