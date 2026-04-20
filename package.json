@@ -1,0 +1,10 @@
+{
+  "name": "chrono-markdown-card",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "terser src/chrono-markdown-card.js -o dist/chrono-markdown-card.js --compress --mangle"
+  },
+  "devDependencies": {
+    "terser": "^5.0.0"
+  }
+}
