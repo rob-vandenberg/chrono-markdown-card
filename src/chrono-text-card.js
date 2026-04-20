@@ -2,9 +2,11 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?modu
 import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/live.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.8';
+const CARD_VERSION = '0.1.9';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.9: Add line_breaks per-field toggle, Show+Line breaks on same row,
+//         card settings wrapped in collapsible ha-expansion-panel open by default
 // v0.1.8: Markdown support via ha-markdown-element; font-size inherits from
 //         field container so headings scale relative to field font-size setting
 // v0.0.7: Add chrono-tc-textarea component and ctTextArea helper, content field uses textarea
@@ -33,6 +35,7 @@ console.info(
 const DEFAULT_FIELD = {
   name:             '',
   show:             true,
+  line_breaks:      true,
   content:          '',
   color:            '#ffffff',
   font_size:        1.2,
@@ -466,7 +469,7 @@ class ChronoTextCardEditor extends LitElement {
 
     .row-show {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
       margin-top: 16px;
       margin-bottom: 24px;
@@ -494,17 +497,6 @@ class ChronoTextCardEditor extends LitElement {
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
-    }
-
-    /* ── Section headings ──────────────────────────────────────────────────── */
-
-    .section-title {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--secondary-text-color);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin: 16px 0 8px 0;
     }
 
     /* ── Text fields ───────────────────────────────────────────────────────── */
@@ -669,33 +661,33 @@ class ChronoTextCardEditor extends LitElement {
 
       <!-- ── Card section ─────────────────────────────────────────────────── -->
 
-      <div class="section-title">Card</div>
+      <ha-expansion-panel header="Card" outlined .expanded=${true}>
 
-      <!-- Row 1: Background color / Box shadow -->
-      <div class="row-bg-shadow">
-        ${ctColorPicker('Background color', c.background_color, e => this._valueChanged('background_color', e))}
-        ${ctTextField('Box shadow', c.box_shadow, e => this._valueChanged('box_shadow', e))}
-      </div>
+        <!-- Row 1: Background color / Box shadow -->
+        <div class="row-bg-shadow">
+          ${ctColorPicker('Background color', c.background_color, e => this._valueChanged('background_color', e))}
+          ${ctTextField('Box shadow', c.box_shadow, e => this._valueChanged('box_shadow', e))}
+        </div>
 
-      <!-- Row 2: Border — color, width, radius, style -->
-      <div class="row-border">
-        ${ctColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
-        ${ctTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
-        ${ctTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
-        ${ctTextField('Style', c.border_style, e => this._valueChanged('border_style', e))}
-      </div>
+        <!-- Row 2: Border — color, width, radius, style -->
+        <div class="row-border">
+          ${ctColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
+          ${ctTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
+          ${ctTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
+          ${ctTextField('Style', c.border_style, e => this._valueChanged('border_style', e))}
+        </div>
 
-      <!-- Row 3: Padding -->
-      <div class="row-padding">
-        ${ctTextField('Padding top',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
-        ${ctTextField('Padding bottom', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
-        ${ctTextField('Padding left',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
-        ${ctTextField('Padding right',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
-      </div>
+        <!-- Row 3: Padding -->
+        <div class="row-padding">
+          ${ctTextField('Padding top',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
+          ${ctTextField('Padding bottom', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+          ${ctTextField('Padding left',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
+          ${ctTextField('Padding right',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
+        </div>
+
+      </ha-expansion-panel>
 
       <!-- ── Fields section ───────────────────────────────────────────────── -->
-
-      <div class="section-title">Fields</div>
 
       ${fields.map((field, index) => html`
         <ha-expansion-panel outlined>
@@ -714,9 +706,10 @@ class ChronoTextCardEditor extends LitElement {
             ${ctTextField('Name', field.name, e => this._fieldChanged(index, 'name', e))}
           </div>
 
-          <!-- Row 2: Show toggle -->
+          <!-- Row 2: Show / Line breaks toggles -->
           <div class="row-show">
-            ${ctToggleField('Show', field.show ?? true, e => this._fieldToggled(index, 'show', e))}
+            ${ctToggleField('Show',        field.show        ?? true, e => this._fieldToggled(index, 'show',        e))}
+            ${ctToggleField('Line breaks', field.line_breaks ?? true, e => this._fieldToggled(index, 'line_breaks', e))}
           </div>
 
           <!-- Row 3: Content (full width, textarea) -->
@@ -917,7 +910,7 @@ class ChronoTextCard extends LitElement {
 
             return html`
               <div class="text-field" style="${fieldStyle}">
-                <ha-markdown-element .content=${this._fieldValues[i] ?? ''}></ha-markdown-element>
+                <ha-markdown-element .content=${this._fieldValues[i] ?? ''} ?breaks=${field.line_breaks !== false}></ha-markdown-element>
               </div>
             `;
           })}
