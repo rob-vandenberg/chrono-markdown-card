@@ -3,9 +3,10 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.0.6';
+const CARD_VERSION = '0.0.7';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.0.7: Add chrono-tc-textarea component and ctTextArea helper, content field uses textarea
 // v0.0.6: Add button-picker-field class (column layout) for ctButtonPicker,
 //         toggle-field-in-text-row now targets button-picker-field
 // v0.0.5: toggle-field back to horizontal (matches compass), remove toggle-field-switch,
@@ -33,17 +34,17 @@ const DEFAULT_FIELD = {
   show:             true,
   content:          '',
   color:            '#ffffff',
-  font_size:        1.0,
+  font_size:        1.2,
   font_weight:      400,
-  text_align:       'left',
+  text_align:       'center',
   line_height:      1.4,
   background_color: '#00000000',
   border_width:     0,
   border_style:     'solid',
   border_color:     '#444444',
-  border_radius:    0,
+  border_radius:    12,
   padding_top:      8,
-  padding_bottom:   8,
+  padding_bottom:   12,
   padding_left:     8,
   padding_right:    8,
 };
@@ -53,31 +54,38 @@ const DEFAULT_CONFIG = {
   border_width:     1,
   border_style:     'solid',
   border_color:     '#444444',
-  border_radius:    8,
-  padding_top:      0,
-  padding_bottom:   0,
-  padding_left:     0,
-  padding_right:    0,
+  border_radius:    12,
+  padding_top:      8,
+  padding_bottom:   8,
+  padding_left:     8,
+  padding_right:    8,
   box_shadow:       'none',
   fields: [
     {
       ...DEFAULT_FIELD,
-      name:         'Title',
-      content:      'Title',
-      color:        '#aaaaaa',
-      font_size:    1.1,
-      font_weight:  500,
-      text_align:   'center',
-      padding_top:  10,
+      name:           'Title',
+      content:        'Title',
+      color:          '#aaaaaa',
+      font_size:      1.1,
+      font_weight:    500,
+      text_align:     'center',
+      padding_top:    8,
+      padding_bottom: 8,
+      padding_left:   8,
+      padding_right:  8,
     },
     {
       ...DEFAULT_FIELD,
-      name:         'Content',
-      content:      'Content',
-      color:        '#3498db',
-      font_size:    1.5,
-      font_weight:  600,
-      text_align:   'center',
+      name:           'Content',
+      content:        'Content',
+      color:          '#3498db',
+      font_size:      1.5,
+      font_weight:    600,
+      text_align:     'center',
+      padding_top:    8,
+      padding_bottom: 8,
+      padding_left:   8,
+      padding_right:  8,
     },
   ],
 };
@@ -165,6 +173,19 @@ function ctButtonPicker(label, value, options, onChange, align = '', extraClass 
   `;
 }
 
+// ─── ctTextArea ───────────────────────────────────────────────────────────────
+function ctTextArea(label, value, onChange) {
+  return html`
+    <div class="text-field">
+      <label>${label}</label>
+      <chrono-tc-textarea
+        .value=${String(value ?? '')}
+        @input=${onChange}
+      ></chrono-tc-textarea>
+    </div>
+  `;
+}
+
 // ─── ctTextfield component ────────────────────────────────────────────────────
 class CtTextfield extends LitElement {
   static properties = {
@@ -220,6 +241,55 @@ class CtTextfield extends LitElement {
   }
 }
 customElements.define('chrono-tc-textfield', CtTextfield);
+
+// ─── chrono-tc-textarea component ─────────────────────────────────────────────
+class CtTextarea extends LitElement {
+  static properties = {
+    value:       { type: String },
+    placeholder: { type: String },
+  };
+
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+    }
+    textarea {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 80px;
+      padding: 12px;
+      background: var(--input-fill-color, rgba(0,0,0,0.06));
+      border: none;
+      border-bottom: 1px solid var(--secondary-text-color, #888);
+      border-radius: 4px 4px 0 0;
+      color: var(--primary-text-color);
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      resize: vertical;
+      transition: border-bottom-color 0.2s;
+    }
+    textarea:focus {
+      border-bottom: 2px solid var(--primary-color);
+    }
+  `;
+
+  render() {
+    return html`
+      <textarea
+        .value=${live(this.value ?? '')}
+        placeholder=${this.placeholder ?? ''}
+        @input=${e => {
+          this.value = e.target.value;
+          this.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+        }}
+      ></textarea>
+    `;
+  }
+}
+customElements.define('chrono-tc-textarea', CtTextarea);
 
 // ─── ctButtonToggleGroup component ────────────────────────────────────────────
 class CtButtonToggleGroup extends LitElement {
@@ -339,7 +409,7 @@ class ChronoTextCardEditor extends LitElement {
 
   _addField() {
     const index  = (this._config.fields ?? []).length;
-    const fields = [...(this._config.fields ?? []), { ...DEFAULT_FIELD, name: `Field ${index + 1}` }];
+    const fields = [...(this._config.fields ?? []), { ...DEFAULT_FIELD, name: `Field ${index + 1}`, content: `Field ${index + 1}` }];
     this._config = { ...this._config, fields };
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
   }
@@ -362,7 +432,7 @@ class ChronoTextCardEditor extends LitElement {
 
     .row-bg-shadow {
       display: grid;
-      grid-template-columns: 3fr 1fr 3fr 1fr;
+      grid-template-columns: 8fr 13fr;
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
@@ -370,7 +440,7 @@ class ChronoTextCardEditor extends LitElement {
 
     .row-border {
       display: grid;
-      grid-template-columns: 3fr 1fr 1fr 1fr;
+      grid-template-columns: 8fr 4fr 4fr 4fr;
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
@@ -385,7 +455,7 @@ class ChronoTextCardEditor extends LitElement {
     }
 
     .row-name {
-      display: grid;
+      display: NONE;
       grid-template-columns: 1fr;
       gap: 8px;
       align-items: end;
@@ -397,8 +467,8 @@ class ChronoTextCardEditor extends LitElement {
       display: grid;
       grid-template-columns: 1fr;
       gap: 8px;
-      margin-top: 28px;
-      margin-bottom: 16px;
+      margin-top: 16px;
+      margin-bottom: 24px;
     }
 
     .row-content {
@@ -411,7 +481,7 @@ class ChronoTextCardEditor extends LitElement {
 
     .row-colors {
       display: grid;
-      grid-template-columns: 3fr 1fr 3fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
@@ -603,9 +673,7 @@ class ChronoTextCardEditor extends LitElement {
       <!-- Row 1: Background color / Box shadow -->
       <div class="row-bg-shadow">
         ${ctColorPicker('Background color', c.background_color, e => this._valueChanged('background_color', e))}
-        <div></div>
         ${ctTextField('Box shadow', c.box_shadow, e => this._valueChanged('box_shadow', e))}
-        <div></div>
       </div>
 
       <!-- Row 2: Border — color, width, radius, style -->
@@ -618,10 +686,10 @@ class ChronoTextCardEditor extends LitElement {
 
       <!-- Row 3: Padding -->
       <div class="row-padding">
-        ${ctTextField('Padding top (px)',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
-        ${ctTextField('Padding bottom (px)', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
-        ${ctTextField('Padding left (px)',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
-        ${ctTextField('Padding right (px)',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
+        ${ctTextField('Padding top',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
+        ${ctTextField('Padding bottom', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+        ${ctTextField('Padding left',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
+        ${ctTextField('Padding right',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
       </div>
 
       <!-- ── Fields section ───────────────────────────────────────────────── -->
@@ -650,36 +718,34 @@ class ChronoTextCardEditor extends LitElement {
             ${ctToggleField('Show', field.show ?? true, e => this._fieldToggled(index, 'show', e))}
           </div>
 
-          <!-- Row 3: Content (full width) -->
+          <!-- Row 3: Content (full width, textarea) -->
           <div class="row-content">
-            ${ctTextField('Content (HTML / Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
+            ${ctTextArea('Content (HTML / Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
           </div>
 
-          <!-- Row 4 (was 3): Colors -->
+          <!-- Row 4: Typography — font size, font weight, line height, text align -->
+          <div class="row-typography">
+            ${ctTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
+            ${ctTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
+            ${ctTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
+            ${ctTextField('Text align',     field.text_align,  e => this._fieldChanged(index, 'text_align',  e))}
+          </div>
+
+          <!-- Row 5: Colors -->
           <div class="row-colors">
             ${ctColorPicker('Color', field.color, e => this._fieldChanged(index, 'color', e))}
-            <div></div>
             ${ctColorPicker('Background color', field.background_color, e => this._fieldChanged(index, 'background_color', e))}
-            <div></div>
           </div>
 
-          <!-- Row 5 (was 4): Typography — font size, font weight, line height, text align -->
-          <div class="row-typography">
-            ${ctTextField('Font size (em)',  field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
-            ${ctTextField('Font weight',     field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
-            ${ctTextField('Line height',     field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
-            ${ctButtonPicker('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e), '', 'toggle-field-in-text-row')}
-          </div>
-
-          <!-- Row 6 (was 5): Border — color, width, radius, style -->
+          <!-- Row 6: Border — color, width, radius, style -->
           <div class="row-border">
-            ${ctColorPicker('Border color', field.border_color, e => this._fieldChanged(index, 'border_color', e))}
-            ${ctTextField('Width (px)',   field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
-            ${ctTextField('Radius (px)', field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
-            ${ctTextField('Style',       field.border_style,  e => this._fieldChanged(index, 'border_style',  e))}
+            ${ctColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e))}
+            ${ctTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
+            ${ctTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
+            ${ctTextField('Style',          field.border_style,  e => this._fieldChanged(index, 'border_style',  e))}
           </div>
 
-          <!-- Row 7 (was 6): Padding -->
+          <!-- Row 7: Padding -->
           <div class="row-padding">
             ${ctTextField('Padding top (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
             ${ctTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
