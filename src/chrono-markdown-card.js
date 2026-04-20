@@ -3,9 +3,10 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.17';
- 
+const CARD_VERSION = '0.1.18';
+
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.18: Register card with window.customCards for HA card picker, add getCardSize()
 // v0.1.17: Remove hardcoded default colors in favor of HA CSS variable fallbacks;
 //          add border-color fallback to .text-field
 // v0.1.16: Split border shorthand into separate properties, add HA card CSS
@@ -798,6 +799,10 @@ class ChronoMarkdownCard extends LitElement {
     _fieldValues: { state: true },
   };
 
+  static getCardSize() {
+    return 3;
+  }
+
   static getConfigElement() {
     return document.createElement('chrono-markdown-card-editor');
   }
@@ -969,3 +974,12 @@ class ChronoMarkdownCard extends LitElement {
   }
 }
 customElements.define('chrono-markdown-card', ChronoMarkdownCard);
+
+// ─── Card registration ────────────────────────────────────────────────────────
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type:        'chrono-markdown-card',
+  name:        'Chrono Markdown Card',
+  description: 'A flexible multi-field text card. Each field is independently styled and supports Markdown, HTML, and live Jinja2 templates.',
+  preview:     true,
+});
