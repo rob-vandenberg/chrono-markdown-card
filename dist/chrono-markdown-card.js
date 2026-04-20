@@ -1,9 +1,10 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?module';
 import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/live.js?module';
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
+import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.25.2';
+const CARD_VERSION = '0.1.26';
 
 // ─── Version History ──────────────────────────────────────────────────────────
 // v0.1.25: Fix CmSelect: tab no longer opens dropdown; selected value written to
@@ -147,7 +148,7 @@ function cmParseNumber(raw) {
 function cmTextField(label, value, onChange, opts = {}) {
   return html`
     <div class="text-field">
-      <label>${label}</label>
+      <label>${unsafeHTML(label)}</label>
       <chrono-cm-textfield
         .value=${String(value ?? '')}
         type=${opts.type ?? 'text'}
@@ -164,7 +165,7 @@ function cmTextField(label, value, onChange, opts = {}) {
 function cmToggleField(label, checked, onChange, extraClass = '') {
   return html`
     <div class="toggle-field ${extraClass}">
-      <label>${label}</label>
+      <label>${unsafeHTML(label)}</label>
       <ha-switch .checked=${checked} @change=${onChange}></ha-switch>
     </div>
   `;
@@ -174,7 +175,7 @@ function cmToggleField(label, checked, onChange, extraClass = '') {
 function cmColorPicker(label, value, onChange) {
   return html`
     <div class="text-field">
-      <label>${label}</label>
+      <label>${unsafeHTML(label)}</label>
       <div class="color-picker-row">
         <input type="color" .value=${value ?? '#ffffff'} @input=${onChange}>
         <chrono-cm-textfield
@@ -190,7 +191,7 @@ function cmColorPicker(label, value, onChange) {
 function cmButtonPicker(label, value, options, onChange, align = '', extraClass = '') {
   return html`
     <div class="button-picker-field ${extraClass}" style=${align === 'end' ? 'justify-self:end' : ''}>
-      <label>${label}</label>
+      <label>${unsafeHTML(label)}</label>
       <chrono-cm-button-toggle-group
         .value=${value}
         .options=${options}
@@ -204,7 +205,7 @@ function cmButtonPicker(label, value, options, onChange, align = '', extraClass 
 function cmTextArea(label, value, onChange) {
   return html`
     <div class="text-field">
-      <label>${label}</label>
+      <label>${unsafeHTML(label)}</label>
       <chrono-cm-textarea
         .value=${String(value ?? '')}
         @input=${onChange}
@@ -218,7 +219,7 @@ function cmTextArea(label, value, onChange) {
 function cmSelectField(label, value, options, onChange) {
   return html`
     <div class="text-field">
-      <label>${label}</label>
+      <label>${unsafeHTML(label)}</label>
       <chrono-cm-select
         .value=${value ?? ''}
         .options=${options}
@@ -707,7 +708,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
     .row-bg-shadow {
       display: grid;
-      grid-template-columns: 5fr 2fr 2fr 2fr 2fr;
+      grid-template-columns: 11fr 4fr 4fr 4fr 4fr;
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
@@ -715,7 +716,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
     .row-border {
       display: grid;
-      grid-template-columns: 8fr 4fr 4fr 4fr;
+      grid-template-columns: 12fr 5fr 5fr 8fr;
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
@@ -783,6 +784,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       font-size: 12px;
       font-weight: 600;
       color: var(--secondary-text-color);
+      white-space: pre-line;
     }
 
     /* ── Color picker row ──────────────────────────────────────────────────── */
@@ -949,11 +951,11 @@ class ChronoMarkdownCardEditor extends LitElement {
 
         <!-- Row 1: Background color / Box shadow -->
         <div class="row-bg-shadow">
-          ${cmColorPicker('Background color', c.background_color, e => this._valueChanged('background_color', e))}
-          ${cmTextField('Padding top',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Padding bottom', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Padding left',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Padding right',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
+          ${cmColorPicker('Background color\n<i>leave empty for default</i>', c.background_color, e => this._valueChanged('background_color', e))}
+          ${cmTextField('Padding\ntop (px)',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding\nbottom (px)', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding\nleft (px)',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding\nright (px)',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
         </div>
 
         <!-- Row 2: Border — color, width, radius, style -->
@@ -961,15 +963,7 @@ class ChronoMarkdownCardEditor extends LitElement {
           ${cmColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
           ${cmTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
           ${cmTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
-          ${cmSelectField('Style', c.border_style, this._borderStyleOptions, e => this._valueChanged('border_style', e))}
-        </div>
-
-        <!-- Row 3: Padding -->
-        <div class="row-padding">
-          ${cmTextField('Padding top',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Padding bottom', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Padding left',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Padding right',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
+          ${cmSelectField('Border style', c.border_style, this._borderStyleOptions, e => this._valueChanged('border_style', e))}
         </div>
 
       </ha-expansion-panel>
