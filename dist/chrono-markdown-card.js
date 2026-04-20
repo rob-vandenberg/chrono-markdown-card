@@ -3,9 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.16';
+const CARD_VERSION = '0.1.17';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.17: Remove hardcoded default colors in favor of HA CSS variable fallbacks;
+//          add border-color fallback to .text-field
 // v0.1.16: Split border shorthand into separate properties, add HA card CSS
 //          variable fallbacks for background, border, radius, shadow
 // v0.1.15: Switch to styleMap for dynamic styles, add link color CSS rule,
@@ -50,15 +52,15 @@ const DEFAULT_FIELD = {
   show:             true,
   line_breaks:      false,
   content:          '',
-  color:            '#e0e0e0',
+  color:            '',
   font_size:        1.0,
   font_weight:      400,
   text_align:       'left',
   line_height:      1.4,
-  background_color: '#00000000',
+  background_color: '',
   border_width:     0,
   border_style:     'solid',
-  border_color:     '#444444',
+  border_color:     '',
   border_radius:    12,
   padding_top:      8,
   padding_bottom:   8,
@@ -67,16 +69,16 @@ const DEFAULT_FIELD = {
 };
 
 const DEFAULT_CONFIG = {
-  background_color: '#1c1c1c',
+  background_color: '',
   border_width:     1,
   border_style:     'solid',
-  border_color:     'rgba(255,255,255,.12)',
+  border_color:     '',
   border_radius:    12,
   padding_top:      8,
   padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
-  box_shadow:       'none',
+  box_shadow:       '',
   fields: [
     {
       ...DEFAULT_FIELD,
@@ -84,7 +86,7 @@ const DEFAULT_CONFIG = {
       show:        false,
       line_breaks: false,
       content:     '',
-      color:       '#e0e0e0',
+      color:       '',
       font_size:   1.68,
       font_weight: 400,
       text_align:  'left',
@@ -95,7 +97,7 @@ const DEFAULT_CONFIG = {
       show:        true,
       line_breaks: false,
       content:     'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more.\n\nFor more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
-      color:       '#e0e0e0',
+      color:       '',
       font_size:   1.0,
       font_weight: 400,
       text_align:  'left',
@@ -903,6 +905,7 @@ class ChronoMarkdownCard extends LitElement {
       box-sizing: border-box;
       color: var(--primary-text-color);
       background-color: transparent;
+      border-color: var(--ha-card-border-color, var(--divider-color, #e0e0e0));
     }
     ha-markdown-element {
       font-size: inherit;
