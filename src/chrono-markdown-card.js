@@ -2,9 +2,13 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?modu
 import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/live.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.10';
+const CARD_VERSION = '0.1.12';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.12: Replace CmTextarea textarea element with contenteditable div for
+//          natural auto-growing without JavaScript
+// v0.1.11: Textarea auto-resizes to content (max 8 lines), fix p margin to
+//          preserve inter-paragraph spacing, update default Content field text
 // v0.1.10: Project renamed to chrono-markdown-card; all ct- prefixes → cm-,
 //          ChronoTextCard → ChronoMarkdownCard, chrono-text-card → chrono-markdown-card
 // v0.1.9: Add line_breaks per-field toggle, Show+Line breaks on same row,
@@ -83,7 +87,7 @@ const DEFAULT_CONFIG = {
     {
       ...DEFAULT_FIELD,
       name:           'Content',
-      content:        'Content',
+      content:        'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more. For more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
       color:          '#3498db',
       font_size:      1.5,
       font_weight:    600,
@@ -260,11 +264,12 @@ class CmTextarea extends LitElement {
       display: block;
       width: 100%;
     }
-    textarea {
+    .editor {
       display: block;
       width: 100%;
       box-sizing: border-box;
-      min-height: 80px;
+      min-height: calc(1 * 1.5em + 24px);
+      max-height: calc(8 * 1.5em + 24px);
       padding: 12px;
       background: var(--input-fill-color, rgba(0,0,0,0.06));
       border: none;
@@ -274,24 +279,41 @@ class CmTextarea extends LitElement {
       font-size: 16px;
       font-family: inherit;
       outline: none;
-      resize: vertical;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
       transition: border-bottom-color 0.2s;
     }
-    textarea:focus {
+    .editor:focus {
       border-bottom: 2px solid var(--primary-color);
+    }
+    .editor:empty:before {
+      content: attr(data-placeholder);
+      color: var(--secondary-text-color);
+      pointer-events: none;
     }
   `;
 
+  updated(changedProps) {
+    if (changedProps.has('value')) {
+      const el = this.shadowRoot.querySelector('.editor');
+      if (el && el.innerText !== this.value) {
+        el.innerText = this.value ?? '';
+      }
+    }
+  }
+
   render() {
     return html`
-      <textarea
-        .value=${live(this.value ?? '')}
-        placeholder=${this.placeholder ?? ''}
+      <div
+        class="editor"
+        contenteditable="true"
+        data-placeholder=${this.placeholder ?? ''}
         @input=${e => {
-          this.value = e.target.value;
+          this.value = e.target.innerText;
           this.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
         }}
-      ></textarea>
+      ></div>
     `;
   }
 }
@@ -873,8 +895,11 @@ class ChronoMarkdownCard extends LitElement {
     ha-markdown-element {
       font-size: inherit;
     }
-    ha-markdown-element p {
-      margin: 0;
+    ha-markdown-element p:first-child {
+      margin-top: 0;
+    }
+    ha-markdown-element p:last-child {
+      margin-bottom: 0;
     }
   `;
 
