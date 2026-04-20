@@ -2,9 +2,11 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?modu
 import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/live.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.12';
+const CARD_VERSION = '0.1.14';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.14: Update all defaults to match HA markdown card styling exactly;
+//          CmTextarea max-height 20 lines, resize: vertical
 // v0.1.12: Replace CmTextarea textarea element with contenteditable div for
 //          natural auto-growing without JavaScript
 // v0.1.11: Textarea auto-resizes to content (max 8 lines), fix p margin to
@@ -41,12 +43,12 @@ console.info(
 const DEFAULT_FIELD = {
   name:             '',
   show:             true,
-  line_breaks:      true,
+  line_breaks:      false,
   content:          '',
-  color:            '#ffffff',
-  font_size:        1.2,
+  color:            '#e0e0e0',
+  font_size:        1.0,
   font_weight:      400,
-  text_align:       'center',
+  text_align:       'left',
   line_height:      1.4,
   background_color: '#00000000',
   border_width:     0,
@@ -54,16 +56,16 @@ const DEFAULT_FIELD = {
   border_color:     '#444444',
   border_radius:    12,
   padding_top:      8,
-  padding_bottom:   12,
+  padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
 };
 
 const DEFAULT_CONFIG = {
-  background_color: '#00000000',
+  background_color: '#1c1c1c',
   border_width:     1,
   border_style:     'solid',
-  border_color:     '#444444',
+  border_color:     'rgba(255,255,255,.12)',
   border_radius:    12,
   padding_top:      8,
   padding_bottom:   8,
@@ -73,29 +75,25 @@ const DEFAULT_CONFIG = {
   fields: [
     {
       ...DEFAULT_FIELD,
-      name:           'Title',
-      content:        'Title',
-      color:          '#aaaaaa',
-      font_size:      1.1,
-      font_weight:    500,
-      text_align:     'center',
-      padding_top:    8,
-      padding_bottom: 8,
-      padding_left:   8,
-      padding_right:  8,
+      name:        'Title',
+      show:        false,
+      line_breaks: false,
+      content:     '',
+      color:       '#e0e0e0',
+      font_size:   1.68,
+      font_weight: 400,
+      text_align:  'left',
     },
     {
       ...DEFAULT_FIELD,
-      name:           'Content',
-      content:        'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more. For more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
-      color:          '#3498db',
-      font_size:      1.5,
-      font_weight:    600,
-      text_align:     'center',
-      padding_top:    8,
-      padding_bottom: 8,
-      padding_left:   8,
-      padding_right:  8,
+      name:        'Content',
+      show:        true,
+      line_breaks: false,
+      content:     'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more. For more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
+      color:       '#e0e0e0',
+      font_size:   1.0,
+      font_weight: 400,
+      text_align:  'left',
     },
   ],
 };
@@ -269,7 +267,7 @@ class CmTextarea extends LitElement {
       width: 100%;
       box-sizing: border-box;
       min-height: calc(1 * 1.5em + 24px);
-      max-height: calc(8 * 1.5em + 24px);
+      max-height: calc(20 * 1.5em + 24px);
       padding: 12px;
       background: var(--input-fill-color, rgba(0,0,0,0.06));
       border: none;
@@ -280,6 +278,7 @@ class CmTextarea extends LitElement {
       font-family: inherit;
       outline: none;
       overflow-y: auto;
+      resize: vertical;
       white-space: pre-wrap;
       word-wrap: break-word;
       transition: border-bottom-color 0.2s;
