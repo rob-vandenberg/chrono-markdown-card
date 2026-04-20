@@ -1,11 +1,12 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?module';
 import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/live.js?module';
-import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.0.7';
+const CARD_VERSION = '0.1.8';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.8: Markdown support via ha-markdown-element; font-size inherits from
+//         field container so headings scale relative to field font-size setting
 // v0.0.7: Add chrono-tc-textarea component and ctTextArea helper, content field uses textarea
 // v0.0.6: Add button-picker-field class (column layout) for ctButtonPicker,
 //         toggle-field-in-text-row now targets button-picker-field
@@ -874,6 +875,12 @@ class ChronoTextCard extends LitElement {
     .text-field {
       box-sizing: border-box;
     }
+    ha-markdown-element {
+      font-size: inherit;
+    }
+    ha-markdown-element p {
+      margin: 0;
+    }
   `;
 
   render() {
@@ -910,7 +917,7 @@ class ChronoTextCard extends LitElement {
 
             return html`
               <div class="text-field" style="${fieldStyle}">
-                ${unsafeHTML(this._fieldValues[i] ?? '')}
+                <ha-markdown-element .content=${this._fieldValues[i] ?? ''}></ha-markdown-element>
               </div>
             `;
           })}
