@@ -3,9 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.19';
+const CARD_VERSION = '0.1.20';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.20: Rebuild CmSelect as styled combobox (free text + dropdown options),
+//          fix content textarea label, restore Title field default content
 // v0.1.19: Add CmSelect component and cmSelectField helper; text-align and
 //          border-style use select dropdowns instead of button group / text field
 // v0.1.18: Register card with window.customCards for HA card picker, add getCardSize()
@@ -88,7 +90,7 @@ const DEFAULT_CONFIG = {
       name:        'Title',
       show:        false,
       line_breaks: false,
-      content:     '',
+      content:     'Title',
       color:       '',
       font_size:   1.68,
       font_weight: 400,
@@ -275,54 +277,186 @@ class CmTextfield extends LitElement {
 customElements.define('chrono-cm-textfield', CmTextfield);
 
 // ─── chrono-cm-select component ───────────────────────────────────────────────
+// Combobox: free-text input + styled dropdown suggestions.
+// User can type any value or pick from the options list.
 class CmSelect extends LitElement {
   static properties = {
     value:   { type: String },
     options: { type: Array },
+    _open:   { state: true },
   };
+
+  constructor() {
+    super();
+    this.value   = '';
+    this.options = [];
+    this._open   = false;
+    this._onOutsideClick = this._onOutsideClick.bind(this);
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener('click', this._onOutsideClick);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('click', this._onOutsideClick);
+  }
+
+  _onOutsideClick(e) {
+    if (!this.shadowRoot.contains(e.composedPath()[0])) {
+      this._open = false;
+    }
+  }
+
+  _onInputChange(e) {
+    this.value = e.target.value;
+    this.dispatchEvent(new CustomEvent('change', { detail: { value: this.value }, bubbles: true, composed: true }));
+  }
+
+  _selectOption(val) {
+    this.value = val;
+    this._open = false;
+    this.dispatchEvent(new CustomEvent('change', { detail: { value: val }, bubbles: true, composed: true }));
+  }
+
+  _onKeyDown(e) {
+    const opts  = this.options ?? [];
+    const items = this.shadowRoot.querySelectorAll('.option');
+    const idx   = Array.from(items).findIndex(el => el.classList.contains('focused'));
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this._open = true;
+      const next = idx < items.length - 1 ? idx + 1 : 0;
+      items.forEach(el => el.classList.remove('focused'));
+      items[next]?.classList.add('focused');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this._open = true;
+      const prev = idx > 0 ? idx - 1 : items.length - 1;
+      items.forEach(el => el.classList.remove('focused'));
+      items[prev]?.classList.add('focused');
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const focused = this.shadowRoot.querySelector('.option.focused');
+      if (focused) {
+        this._selectOption(focused.dataset.value);
+      }
+    } else if (e.key === 'Escape') {
+      this._open = false;
+    }
+  }
 
   static styles = css`
     :host {
       display: block;
       width: 100%;
+      position: relative;
     }
-    select {
-      display: block;
+    .combobox {
+      display: flex;
+      align-items: center;
       width: 100%;
       box-sizing: border-box;
       height: 56px;
-      padding: 0 12px;
       background: var(--input-fill-color, rgba(0,0,0,0.06));
       border: none;
       border-bottom: 1px solid var(--secondary-text-color, #888);
       border-radius: 4px 4px 0 0;
+      transition: border-bottom-color 0.2s;
+    }
+    .combobox:focus-within {
+      border-bottom: 2px solid var(--primary-color);
+    }
+    .combobox input {
+      flex: 1;
+      height: 100%;
+      padding: 0 8px 0 12px;
+      background: transparent;
+      border: none;
       color: var(--primary-text-color);
       font-size: 16px;
       font-family: inherit;
       outline: none;
-      cursor: pointer;
-      appearance: auto;
-      transition: border-bottom-color 0.2s;
     }
-    select:focus {
-      border-bottom: 2px solid var(--primary-color);
+    .chevron {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 100%;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      font-size: 12px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .chevron:hover {
+      color: var(--primary-text-color);
+    }
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      background: var(--card-background-color, #1c1c1c);
+      border: 1px solid var(--divider-color, #444);
+      border-radius: 0 0 4px 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      max-height: 240px;
+      overflow-y: auto;
+      margin-top: 1px;
+    }
+    .option {
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--primary-text-color);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .option:hover,
+    .option.focused {
+      background: var(--secondary-background-color, rgba(255,255,255,0.08));
+    }
+    .option.selected {
+      color: var(--primary-color);
     }
   `;
 
   render() {
     const opts = this.options ?? [];
     return html`
-      <select
-        .value=${this.value ?? ''}
-        @change=${e => {
-          this.value = e.target.value;
-          this.dispatchEvent(new CustomEvent('change', { detail: { value: e.target.value }, bubbles: true, composed: true }));
-        }}
-      >
-        ${opts.map(opt => html`
-          <option value=${opt.value} ?selected=${opt.value === this.value}>${opt.label}</option>
-        `)}
-      </select>
+      <div class="combobox">
+        <input
+          .value=${live(this.value ?? '')}
+          @input=${this._onInputChange}
+          @keydown=${this._onKeyDown}
+          @focus=${() => { this._open = true; }}
+          aria-autocomplete="list"
+          aria-expanded=${this._open}
+          role="combobox"
+        >
+        <div
+          class="chevron"
+          @click=${() => { this._open = !this._open; }}
+          aria-hidden="true"
+        >▾</div>
+      </div>
+      ${this._open ? html`
+        <div class="dropdown" role="listbox">
+          ${opts.map(opt => html`
+            <div
+              class="option ${opt.value === this.value ? 'selected' : ''}"
+              role="option"
+              data-value=${opt.value}
+              @click=${() => this._selectOption(opt.value)}
+            >${opt.label}</div>
+          `)}
+        </div>
+      ` : ''}
     `;
   }
 }
@@ -828,7 +962,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
           <!-- Row 3: Content (full width, textarea) -->
           <div class="row-content">
-            ${cmTextArea('Content (HTML / Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
+            ${cmTextArea('Content (Markdown / HTML / Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
           </div>
 
           <!-- Row 4: Typography — font size, font weight, line height, text align -->
