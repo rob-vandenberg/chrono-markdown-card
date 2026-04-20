@@ -3,11 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.23';
+const CARD_VERSION = '0.1.24';
 
 // ─── Version History ──────────────────────────────────────────────────────────
-// v0.1.23: Replace inline cmSelectField with CmSelect custom element (light DOM);
-//          fixes cursor-reset-on-type bug; adds ▾/▴ chevron and keyboard navigation
+// v0.1.24: Replace inline cmSelectField with shadow DOM CmSelect custom element;
+//          fixes cursor-reset-on-type; adds ▾/▴ chevron and keyboard navigation
 // v0.1.22: Replace input with contenteditable div in combobox to fix width issue
 // v0.1.21: Replace CmSelect custom element with inline Lit template combobox
 //          to eliminate shadow DOM host sizing issues
@@ -415,10 +415,8 @@ class CmButtonToggleGroup extends LitElement {
 customElements.define('chrono-cm-button-toggle-group', CmButtonToggleGroup);
 
 // ─── CmSelect component ───────────────────────────────────────────────────────
-// Combobox: free-text input + dropdown option list.
-// Uses createRenderRoot() → light DOM so the editor's shadow DOM CSS styles the
-// inner elements directly, and the host fills its grid cell like any block element.
-// Manages its own open/cursor state; no state leaks into the editor.
+// Shadow DOM combobox. Modelled on CmTextfield — host fills grid cell via
+// :host { display: block; width: 100%; }. All CSS self-contained in static styles.
 class CmSelect extends LitElement {
   static properties = {
     value:   { type: String },
@@ -427,10 +425,99 @@ class CmSelect extends LitElement {
     _cursor: { state: true },
   };
 
-  // ── Light DOM rendering — no shadow root ─────────────────────────────────
-  createRenderRoot() {
-    return this;
-  }
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      position: relative;
+    }
+
+    .combobox {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
+      height: 56px;
+      background: var(--input-fill-color, rgba(0,0,0,0.06));
+      border: none;
+      border-bottom: 1px solid var(--secondary-text-color, #888);
+      border-radius: 4px 4px 0 0;
+      transition: border-bottom-color 0.2s;
+    }
+
+    .combobox:focus-within,
+    .combobox-open {
+      border-bottom: 2px solid var(--primary-color);
+    }
+
+    .combobox-input {
+      flex: 1;
+      height: 100%;
+      padding: 0 8px 0 12px;
+      background: transparent;
+      border: none;
+      color: var(--primary-text-color);
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .combobox-chevron {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 100%;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      font-size: 12px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .combobox-chevron:hover {
+      color: var(--primary-text-color);
+    }
+
+    .combobox-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      background: var(--card-background-color, #1c1c1c);
+      border: 1px solid var(--divider-color, #444);
+      border-radius: 0 0 4px 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      max-height: 240px;
+      overflow-y: auto;
+      margin-top: 1px;
+    }
+
+    .combobox-option {
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--primary-text-color);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .combobox-option:hover {
+      background: var(--secondary-background-color, rgba(255,255,255,0.08));
+    }
+
+    .combobox-option-selected {
+      color: var(--primary-color);
+    }
+
+    .combobox-option-cursor {
+      background: var(--secondary-background-color, rgba(255,255,255,0.08));
+    }
+  `;
 
   constructor() {
     super();
@@ -451,15 +538,13 @@ class CmSelect extends LitElement {
     document.removeEventListener('click', this._onOutsideClick);
   }
 
-  // ── Close when clicking outside this element ─────────────────────────────
   _onOutsideClick(e) {
-    if (!this.contains(e.composedPath()[0])) {
+    if (!this.shadowRoot.contains(e.composedPath()[0]) && e.composedPath()[0] !== this) {
       this._open   = false;
       this._cursor = -1;
     }
   }
 
-  // ── Commit a chosen value and close ──────────────────────────────────────
   _select(value) {
     this._open   = false;
     this._cursor = -1;
@@ -470,7 +555,6 @@ class CmSelect extends LitElement {
     }));
   }
 
-  // ── Keyboard navigation ───────────────────────────────────────────────────
   _handleKeyDown(e) {
     const opts = this.options ?? [];
 
@@ -505,43 +589,39 @@ class CmSelect extends LitElement {
     const opts = this.options ?? [];
 
     return html`
-      <div class="combobox-wrap">
-
-        <div class="combobox ${this._open ? 'combobox-open' : ''}">
-          <input
-            class="combobox-input"
-            .value=${live(this.value ?? '')}
-            @input=${e => {
-              this.dispatchEvent(new CustomEvent('change', {
-                detail:   { value: e.target.value },
-                bubbles:  true,
-                composed: true,
-              }));
-            }}
-            @focus=${() => { this._open = true; }}
-            @keydown=${this._handleKeyDown}
-          >
-          <div
-            class="combobox-chevron"
-            @click=${() => { this._open = !this._open; this._cursor = -1; }}
-            aria-hidden="true"
-          >${this._open ? '▴' : '▾'}</div>
-        </div>
-
-        ${this._open ? html`
-          <div class="combobox-dropdown">
-            ${opts.map((opt, i) => html`
-              <div
-                class="combobox-option
-                       ${opt.value === this.value  ? 'combobox-option-selected' : ''}
-                       ${i === this._cursor        ? 'combobox-option-cursor'   : ''}"
-                @mousedown=${(e) => { e.preventDefault(); this._select(opt.value); }}
-              >${opt.label}</div>
-            `)}
-          </div>
-        ` : ''}
-
+      <div class="combobox ${this._open ? 'combobox-open' : ''}">
+        <input
+          class="combobox-input"
+          .value=${live(this.value ?? '')}
+          @input=${e => {
+            this.dispatchEvent(new CustomEvent('change', {
+              detail:   { value: e.target.value },
+              bubbles:  true,
+              composed: true,
+            }));
+          }}
+          @focus=${() => { this._open = true; }}
+          @keydown=${this._handleKeyDown}
+        >
+        <div
+          class="combobox-chevron"
+          @click=${() => { this._open = !this._open; this._cursor = -1; }}
+          aria-hidden="true"
+        >${this._open ? '▴' : '▾'}</div>
       </div>
+
+      ${this._open ? html`
+        <div class="combobox-dropdown">
+          ${opts.map((opt, i) => html`
+            <div
+              class="combobox-option
+                     ${opt.value === this.value ? 'combobox-option-selected' : ''}
+                     ${i === this._cursor       ? 'combobox-option-cursor'   : ''}"
+              @mousedown=${(e) => { e.preventDefault(); this._select(opt.value); }}
+            >${opt.label}</div>
+          `)}
+        </div>
+      ` : ''}
     `;
   }
 }
@@ -726,109 +806,6 @@ class ChronoMarkdownCardEditor extends LitElement {
 
     .color-picker-row chrono-cm-textfield {
       flex: 1;
-    }
-
-    /* ── CmSelect host sizing (light DOM — no :host available) ─────────────── */
-
-    chrono-cm-select {
-      display: block;
-      width: 100%;
-      min-width: 0;
-    }
-
-    /* ── Combobox (inline select with free text) ───────────────────────────── */
-
-    .combobox-wrap {
-      position: relative;
-      width: 100%;
-    }
-
-    .combobox {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      box-sizing: border-box;
-      height: 56px;
-      background: var(--input-fill-color, rgba(0,0,0,0.06));
-      border: none;
-      border-bottom: 1px solid var(--secondary-text-color, #888);
-      border-radius: 4px 4px 0 0;
-      transition: border-bottom-color 0.2s;
-    }
-
-    .combobox:focus-within,
-    .combobox-open {
-      border-bottom: 2px solid var(--primary-color);
-    }
-
-    .combobox-input {
-      flex: 1;
-      height: 100%;
-      padding: 0 8px 0 12px;
-      background: transparent;
-      border: none;
-      color: var(--primary-text-color);
-      font-size: 16px;
-      font-family: inherit;
-      outline: none;
-      display: flex;
-      align-items: center;
-      overflow: hidden;
-      white-space: nowrap;
-      cursor: text;
-    }
-
-    .combobox-chevron {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 100%;
-      cursor: pointer;
-      color: var(--secondary-text-color);
-      font-size: 12px;
-      flex-shrink: 0;
-      user-select: none;
-    }
-
-    .combobox-chevron:hover {
-      color: var(--primary-text-color);
-    }
-
-    .combobox-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      z-index: 9999;
-      background: var(--card-background-color, #1c1c1c);
-      border: 1px solid var(--divider-color, #444);
-      border-radius: 0 0 4px 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      max-height: 240px;
-      overflow-y: auto;
-      margin-top: 1px;
-    }
-
-    .combobox-option {
-      padding: 10px 12px;
-      font-size: 14px;
-      font-family: inherit;
-      color: var(--primary-text-color);
-      cursor: pointer;
-      transition: background 0.1s;
-    }
-
-    .combobox-option:hover {
-      background: var(--secondary-background-color, rgba(255,255,255,0.08));
-    }
-
-    .combobox-option-selected {
-      color: var(--primary-color);
-    }
-
-    .combobox-option-cursor {
-      background: var(--secondary-background-color, rgba(255,255,255,0.08));
     }
 
     /* ── Toggle fields (ha-switch: label left, switch right) ───────────────── */

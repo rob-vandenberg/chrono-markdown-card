@@ -3,9 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.24';
+const CARD_VERSION = '0.1.25';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.25: Fix CmSelect: tab no longer opens dropdown; selected value written to
+//          input; chevron click focuses input; tab-away closes dropdown
 // v0.1.24: Replace inline cmSelectField with shadow DOM CmSelect custom element;
 //          fixes cursor-reset-on-type; adds ▾/▴ chevron and keyboard navigation
 // v0.1.22: Replace input with contenteditable div in combobox to fix width issue
@@ -546,6 +548,7 @@ class CmSelect extends LitElement {
   }
 
   _select(value) {
+    this.value   = value;
     this._open   = false;
     this._cursor = -1;
     this.dispatchEvent(new CustomEvent('change', {
@@ -600,12 +603,12 @@ class CmSelect extends LitElement {
               composed: true,
             }));
           }}
-          @focus=${() => { this._open = true; }}
+          @blur=${() => { this._open = false; this._cursor = -1; }}
           @keydown=${this._handleKeyDown}
         >
         <div
           class="combobox-chevron"
-          @click=${() => { this._open = !this._open; this._cursor = -1; }}
+          @click=${() => { this._open = !this._open; this._cursor = -1; this.shadowRoot.querySelector('.combobox-input').focus(); }}
           aria-hidden="true"
         >${this._open ? '▴' : '▾'}</div>
       </div>
