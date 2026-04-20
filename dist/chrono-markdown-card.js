@@ -3,9 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.15';
+const CARD_VERSION = '0.1.16';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.16: Split border shorthand into separate properties, add HA card CSS
+//          variable fallbacks for background, border, radius, shadow
 // v0.1.15: Switch to styleMap for dynamic styles, add link color CSS rule,
 //          fix default content \n\n, empty color falls back to HA theme vars
 // v0.1.14: Update all defaults to match HA markdown card styling exactly;
@@ -886,6 +888,12 @@ class ChronoMarkdownCard extends LitElement {
     .text-container {
       box-sizing: border-box;
       position: relative;
+      background-color: var(--ha-card-background, var(--card-background-color, white));
+      border-color: var(--ha-card-border-color, var(--divider-color, #e0e0e0));
+      border-radius: var(--ha-card-border-radius, var(--ha-border-radius-lg));
+      border-width: var(--ha-card-border-width, 1px);
+      border-style: solid;
+      box-shadow: var(--ha-card-box-shadow, none);
     }
     .text-layer {
       display: flex;
@@ -917,10 +925,12 @@ class ChronoMarkdownCard extends LitElement {
 
     const containerStyles = {
       'background-color': c.background_color || undefined,
-      'border':           `${c.border_width}px ${c.border_style} ${c.border_color}`,
-      'border-radius':    `${c.border_radius}px`,
+      'border-width':     c.border_width !== undefined ? `${c.border_width}px` : undefined,
+      'border-style':     c.border_style  || undefined,
+      'border-color':     c.border_color  || undefined,
+      'border-radius':    c.border_radius !== undefined ? `${c.border_radius}px` : undefined,
       'padding':          `${c.padding_top}px ${c.padding_right}px ${c.padding_bottom}px ${c.padding_left}px`,
-      'box-shadow':       c.box_shadow || undefined,
+      'box-shadow':       c.box_shadow    || undefined,
     };
 
     const fields = c.fields ?? [];
@@ -937,8 +947,10 @@ class ChronoMarkdownCard extends LitElement {
               'text-align':       field.text_align       || undefined,
               'line-height':      `${field.line_height}`,
               'background-color': field.background_color || undefined,
-              'border':           `${field.border_width}px ${field.border_style} ${field.border_color}`,
-              'border-radius':    `${field.border_radius}px`,
+              'border-width':     field.border_width !== undefined ? `${field.border_width}px` : undefined,
+              'border-style':     field.border_style  || undefined,
+              'border-color':     field.border_color  || undefined,
+              'border-radius':    field.border_radius !== undefined ? `${field.border_radius}px` : undefined,
               'padding':          `${field.padding_top}px ${field.padding_right}px ${field.padding_bottom}px ${field.padding_left}px`,
             };
 
