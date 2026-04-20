@@ -3,9 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.18';
+const CARD_VERSION = '0.1.19';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.19: Add CmSelect component and cmSelectField helper; text-align and
+//          border-style use select dropdowns instead of button group / text field
 // v0.1.18: Register card with window.customCards for HA card picker, add getCardSize()
 // v0.1.17: Remove hardcoded default colors in favor of HA CSS variable fallbacks;
 //          add border-color fallback to .text-field
@@ -202,6 +204,20 @@ function cmTextArea(label, value, onChange) {
   `;
 }
 
+// ─── cmSelectField ────────────────────────────────────────────────────────────
+function cmSelectField(label, value, options, onChange) {
+  return html`
+    <div class="text-field">
+      <label>${label}</label>
+      <chrono-cm-select
+        .value=${value ?? ''}
+        .options=${options}
+        @change=${onChange}
+      ></chrono-cm-select>
+    </div>
+  `;
+}
+
 // ─── ctTextfield component ────────────────────────────────────────────────────
 class CmTextfield extends LitElement {
   static properties = {
@@ -257,6 +273,60 @@ class CmTextfield extends LitElement {
   }
 }
 customElements.define('chrono-cm-textfield', CmTextfield);
+
+// ─── chrono-cm-select component ───────────────────────────────────────────────
+class CmSelect extends LitElement {
+  static properties = {
+    value:   { type: String },
+    options: { type: Array },
+  };
+
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+    }
+    select {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      height: 56px;
+      padding: 0 12px;
+      background: var(--input-fill-color, rgba(0,0,0,0.06));
+      border: none;
+      border-bottom: 1px solid var(--secondary-text-color, #888);
+      border-radius: 4px 4px 0 0;
+      color: var(--primary-text-color);
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+      appearance: auto;
+      transition: border-bottom-color 0.2s;
+    }
+    select:focus {
+      border-bottom: 2px solid var(--primary-color);
+    }
+  `;
+
+  render() {
+    const opts = this.options ?? [];
+    return html`
+      <select
+        .value=${this.value ?? ''}
+        @change=${e => {
+          this.value = e.target.value;
+          this.dispatchEvent(new CustomEvent('change', { detail: { value: e.target.value }, bubbles: true, composed: true }));
+        }}
+      >
+        ${opts.map(opt => html`
+          <option value=${opt.value} ?selected=${opt.value === this.value}>${opt.label}</option>
+        `)}
+      </select>
+    `;
+  }
+}
+customElements.define('chrono-cm-select', CmSelect);
 
 // ─── chrono-cm-textarea component ─────────────────────────────────────────────
 class CmTextarea extends LitElement {
@@ -677,9 +747,22 @@ class ChronoMarkdownCardEditor extends LitElement {
 
   // ── Option arrays (defined once, reused in render) ─────────────────────────
   _textAlignOptions = [
-    { label: 'L', value: 'left'   },
-    { label: 'C', value: 'center' },
-    { label: 'R', value: 'right'  },
+    { label: 'Left',    value: 'left'    },
+    { label: 'Center',  value: 'center'  },
+    { label: 'Right',   value: 'right'   },
+    { label: 'Justify', value: 'justify' },
+  ];
+
+  _borderStyleOptions = [
+    { label: 'Solid',  value: 'solid'  },
+    { label: 'Dashed', value: 'dashed' },
+    { label: 'Dotted', value: 'dotted' },
+    { label: 'Double', value: 'double' },
+    { label: 'Groove', value: 'groove' },
+    { label: 'Ridge',  value: 'ridge'  },
+    { label: 'Inset',  value: 'inset'  },
+    { label: 'Outset', value: 'outset' },
+    { label: 'None',   value: 'none'   },
   ];
 
   render() {
@@ -705,7 +788,7 @@ class ChronoMarkdownCardEditor extends LitElement {
           ${cmColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
           ${cmTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
           ${cmTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
-          ${cmTextField('Style', c.border_style, e => this._valueChanged('border_style', e))}
+          ${cmSelectField('Style', c.border_style, this._borderStyleOptions, e => this._valueChanged('border_style', e))}
         </div>
 
         <!-- Row 3: Padding -->
@@ -753,7 +836,7 @@ class ChronoMarkdownCardEditor extends LitElement {
             ${cmTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
             ${cmTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
             ${cmTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
-            ${cmTextField('Text align',     field.text_align,  e => this._fieldChanged(index, 'text_align',  e))}
+            ${cmSelectField('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e))}
           </div>
 
           <!-- Row 5: Colors -->
@@ -767,7 +850,7 @@ class ChronoMarkdownCardEditor extends LitElement {
             ${cmColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e))}
             ${cmTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
             ${cmTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
-            ${cmTextField('Style',          field.border_style,  e => this._fieldChanged(index, 'border_style',  e))}
+            ${cmSelectField('Style',       field.border_style,  this._borderStyleOptions, e => this._fieldChanged(index, 'border_style',  e))}
           </div>
 
           <!-- Row 7: Padding -->
