@@ -2,15 +2,17 @@ import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?modu
 import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/live.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.9';
+const CARD_VERSION = '0.1.10';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.10: Project renamed to chrono-markdown-card; all ct- prefixes → cm-,
+//          ChronoTextCard → ChronoMarkdownCard, chrono-text-card → chrono-markdown-card
 // v0.1.9: Add line_breaks per-field toggle, Show+Line breaks on same row,
 //         card settings wrapped in collapsible ha-expansion-panel open by default
 // v0.1.8: Markdown support via ha-markdown-element; font-size inherits from
 //         field container so headings scale relative to field font-size setting
-// v0.0.7: Add chrono-tc-textarea component and ctTextArea helper, content field uses textarea
-// v0.0.6: Add button-picker-field class (column layout) for ctButtonPicker,
+// v0.0.7: Add chrono-cm-textarea component and cmTextArea helper, content field uses textarea
+// v0.0.6: Add button-picker-field class (column layout) for cmButtonPicker,
 //         toggle-field-in-text-row now targets button-picker-field
 // v0.0.5: toggle-field back to horizontal (matches compass), remove toggle-field-switch,
 //         row-show margins match compass field-toggles-grid, Add button as plain styled button
@@ -26,7 +28,7 @@ const CARD_VERSION = '0.1.9';
 
 // ─── Console log ──────────────────────────────────────────────────────────────
 console.info(
-  `%c CHRONO-TEXT-CARD %c v${CARD_VERSION} `,
+  `%c CHRONO-MARKDOWN-CARD %c v${CARD_VERSION} `,
   'background-color: #2980b9; color: #fff; font-weight: bold; padding: 2px 4px; border-radius: 3px 0 0 3px;',
   'background-color: #1e1e1e; color: #fff; font-weight: bold; padding: 2px 4px; border-radius: 0 3px 3px 0;'
 );
@@ -107,11 +109,11 @@ const NUMERIC_FIELD_KEYS = new Set([
   'padding_top', 'padding_bottom', 'padding_left', 'padding_right',
 ]);
 
-// ─── ctParseNumber ────────────────────────────────────────────────────────────
+// ─── cmParseNumber ────────────────────────────────────────────────────────────
 // Mirrors ha-form-float._handleInput logic exactly.
 // Returns the parsed number, undefined if the value is empty,
 // or null to signal "return early, do not fire config-changed".
-function ctParseNumber(raw) {
+function cmParseNumber(raw) {
   const v = String(raw).replace(',', '.');
   if (v === '-' || v === '-0' || v.endsWith('.')) return null;
   if (v.includes('.') && v.endsWith('0'))         return null;
@@ -120,25 +122,25 @@ function ctParseNumber(raw) {
   return isNaN(n) ? null : n;
 }
 
-// ─── ctTextField ──────────────────────────────────────────────────────────────
-function ctTextField(label, value, onChange, opts = {}) {
+// ─── cmTextField ──────────────────────────────────────────────────────────────
+function cmTextField(label, value, onChange, opts = {}) {
   return html`
     <div class="text-field">
       <label>${label}</label>
-      <chrono-tc-textfield
+      <chrono-cm-textfield
         .value=${String(value ?? '')}
         type=${opts.type ?? 'text'}
         step=${opts.step ?? ''}
         min=${opts.min ?? ''}
         max=${opts.max ?? ''}
         @input=${onChange}
-      ></chrono-tc-textfield>
+      ></chrono-cm-textfield>
     </div>
   `;
 }
 
-// ─── ctToggleField ────────────────────────────────────────────────────────────
-function ctToggleField(label, checked, onChange, extraClass = '') {
+// ─── cmToggleField ────────────────────────────────────────────────────────────
+function cmToggleField(label, checked, onChange, extraClass = '') {
   return html`
     <div class="toggle-field ${extraClass}">
       <label>${label}</label>
@@ -147,51 +149,51 @@ function ctToggleField(label, checked, onChange, extraClass = '') {
   `;
 }
 
-// ─── ctColorPicker ────────────────────────────────────────────────────────────
-function ctColorPicker(label, value, onChange) {
+// ─── cmColorPicker ────────────────────────────────────────────────────────────
+function cmColorPicker(label, value, onChange) {
   return html`
     <div class="text-field">
       <label>${label}</label>
       <div class="color-picker-row">
         <input type="color" .value=${value ?? '#ffffff'} @input=${onChange}>
-        <chrono-tc-textfield
+        <chrono-cm-textfield
           .value=${String(value ?? '')}
           @input=${onChange}
-        ></chrono-tc-textfield>
+        ></chrono-cm-textfield>
       </div>
     </div>
   `;
 }
 
-// ─── ctButtonPicker ───────────────────────────────────────────────────────────
-function ctButtonPicker(label, value, options, onChange, align = '', extraClass = '') {
+// ─── cmButtonPicker ───────────────────────────────────────────────────────────
+function cmButtonPicker(label, value, options, onChange, align = '', extraClass = '') {
   return html`
     <div class="button-picker-field ${extraClass}" style=${align === 'end' ? 'justify-self:end' : ''}>
       <label>${label}</label>
-      <chrono-tc-button-toggle-group
+      <chrono-cm-button-toggle-group
         .value=${value}
         .options=${options}
         @change=${onChange}
-      ></chrono-tc-button-toggle-group>
+      ></chrono-cm-button-toggle-group>
     </div>
   `;
 }
 
-// ─── ctTextArea ───────────────────────────────────────────────────────────────
-function ctTextArea(label, value, onChange) {
+// ─── cmTextArea ───────────────────────────────────────────────────────────────
+function cmTextArea(label, value, onChange) {
   return html`
     <div class="text-field">
       <label>${label}</label>
-      <chrono-tc-textarea
+      <chrono-cm-textarea
         .value=${String(value ?? '')}
         @input=${onChange}
-      ></chrono-tc-textarea>
+      ></chrono-cm-textarea>
     </div>
   `;
 }
 
 // ─── ctTextfield component ────────────────────────────────────────────────────
-class CtTextfield extends LitElement {
+class CmTextfield extends LitElement {
   static properties = {
     value:       { type: String },
     type:        { type: String },
@@ -244,10 +246,10 @@ class CtTextfield extends LitElement {
     `;
   }
 }
-customElements.define('chrono-tc-textfield', CtTextfield);
+customElements.define('chrono-cm-textfield', CmTextfield);
 
-// ─── chrono-tc-textarea component ─────────────────────────────────────────────
-class CtTextarea extends LitElement {
+// ─── chrono-cm-textarea component ─────────────────────────────────────────────
+class CmTextarea extends LitElement {
   static properties = {
     value:       { type: String },
     placeholder: { type: String },
@@ -293,10 +295,10 @@ class CtTextarea extends LitElement {
     `;
   }
 }
-customElements.define('chrono-tc-textarea', CtTextarea);
+customElements.define('chrono-cm-textarea', CmTextarea);
 
 // ─── ctButtonToggleGroup component ────────────────────────────────────────────
-class CtButtonToggleGroup extends LitElement {
+class CmButtonToggleGroup extends LitElement {
   static properties = {
     value:   { type: String },
     options: { type: Array },
@@ -357,10 +359,10 @@ class CtButtonToggleGroup extends LitElement {
     this.dispatchEvent(new CustomEvent('change', { detail: { value }, bubbles: true, composed: true }));
   }
 }
-customElements.define('chrono-tc-button-toggle-group', CtButtonToggleGroup);
+customElements.define('chrono-cm-button-toggle-group', CmButtonToggleGroup);
 
 // ─── Editor ───────────────────────────────────────────────────────────────────
-class ChronoTextCardEditor extends LitElement {
+class ChronoMarkdownCardEditor extends LitElement {
   static properties = {
     hass:    { attribute: false },
     _config: { state: true },
@@ -375,7 +377,7 @@ class ChronoTextCardEditor extends LitElement {
     const raw = e.target.value ?? e.detail?.value;
     let value;
     if (NUMERIC_CONFIG_KEYS.has(key)) {
-      const parsed = ctParseNumber(raw);
+      const parsed = cmParseNumber(raw);
       if (parsed === null)      return;
       if (parsed === undefined) value = DEFAULT_CONFIG[key];
       else                      value = parsed;
@@ -391,7 +393,7 @@ class ChronoTextCardEditor extends LitElement {
     const raw = e.target.value ?? e.detail?.value;
     let value;
     if (NUMERIC_FIELD_KEYS.has(key)) {
-      const parsed = ctParseNumber(raw);
+      const parsed = cmParseNumber(raw);
       if (parsed === null)      return;
       if (parsed === undefined) value = DEFAULT_FIELD[key];
       else                      value = parsed;
@@ -536,7 +538,7 @@ class ChronoTextCardEditor extends LitElement {
       flex-shrink: 0;
     }
 
-    .color-picker-row chrono-tc-textfield {
+    .color-picker-row chrono-cm-textfield {
       flex: 1;
     }
 
@@ -575,7 +577,7 @@ class ChronoTextCardEditor extends LitElement {
       align-self: flex-start;
     }
 
-    .toggle-field-in-text-row chrono-tc-button-toggle-group {
+    .toggle-field-in-text-row chrono-cm-button-toggle-group {
       padding-top: 10px;
     }
 
@@ -665,24 +667,24 @@ class ChronoTextCardEditor extends LitElement {
 
         <!-- Row 1: Background color / Box shadow -->
         <div class="row-bg-shadow">
-          ${ctColorPicker('Background color', c.background_color, e => this._valueChanged('background_color', e))}
-          ${ctTextField('Box shadow', c.box_shadow, e => this._valueChanged('box_shadow', e))}
+          ${cmColorPicker('Background color', c.background_color, e => this._valueChanged('background_color', e))}
+          ${cmTextField('Box shadow', c.box_shadow, e => this._valueChanged('box_shadow', e))}
         </div>
 
         <!-- Row 2: Border — color, width, radius, style -->
         <div class="row-border">
-          ${ctColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
-          ${ctTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
-          ${ctTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
-          ${ctTextField('Style', c.border_style, e => this._valueChanged('border_style', e))}
+          ${cmColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
+          ${cmTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Style', c.border_style, e => this._valueChanged('border_style', e))}
         </div>
 
         <!-- Row 3: Padding -->
         <div class="row-padding">
-          ${ctTextField('Padding top',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
-          ${ctTextField('Padding bottom', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
-          ${ctTextField('Padding left',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
-          ${ctTextField('Padding right',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding top',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding bottom', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding left',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
+          ${cmTextField('Padding right',  c.padding_right,  e => this._valueChanged('padding_right',  e), { type: 'number', step: '1', min: '0' })}
         </div>
 
       </ha-expansion-panel>
@@ -703,48 +705,48 @@ class ChronoTextCardEditor extends LitElement {
 
           <!-- Row 1: Name (full width) -->
           <div class="row-name">
-            ${ctTextField('Name', field.name, e => this._fieldChanged(index, 'name', e))}
+            ${cmTextField('Name', field.name, e => this._fieldChanged(index, 'name', e))}
           </div>
 
           <!-- Row 2: Show / Line breaks toggles -->
           <div class="row-show">
-            ${ctToggleField('Show',        field.show        ?? true, e => this._fieldToggled(index, 'show',        e))}
-            ${ctToggleField('Line breaks', field.line_breaks ?? true, e => this._fieldToggled(index, 'line_breaks', e))}
+            ${cmToggleField('Show',        field.show        ?? true, e => this._fieldToggled(index, 'show',        e))}
+            ${cmToggleField('Line breaks', field.line_breaks ?? true, e => this._fieldToggled(index, 'line_breaks', e))}
           </div>
 
           <!-- Row 3: Content (full width, textarea) -->
           <div class="row-content">
-            ${ctTextArea('Content (HTML / Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
+            ${cmTextArea('Content (HTML / Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
           </div>
 
           <!-- Row 4: Typography — font size, font weight, line height, text align -->
           <div class="row-typography">
-            ${ctTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
-            ${ctTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
-            ${ctTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
-            ${ctTextField('Text align',     field.text_align,  e => this._fieldChanged(index, 'text_align',  e))}
+            ${cmTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
+            ${cmTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
+            ${cmTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
+            ${cmTextField('Text align',     field.text_align,  e => this._fieldChanged(index, 'text_align',  e))}
           </div>
 
           <!-- Row 5: Colors -->
           <div class="row-colors">
-            ${ctColorPicker('Color', field.color, e => this._fieldChanged(index, 'color', e))}
-            ${ctColorPicker('Background color', field.background_color, e => this._fieldChanged(index, 'background_color', e))}
+            ${cmColorPicker('Color', field.color, e => this._fieldChanged(index, 'color', e))}
+            ${cmColorPicker('Background color', field.background_color, e => this._fieldChanged(index, 'background_color', e))}
           </div>
 
           <!-- Row 6: Border — color, width, radius, style -->
           <div class="row-border">
-            ${ctColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e))}
-            ${ctTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
-            ${ctTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
-            ${ctTextField('Style',          field.border_style,  e => this._fieldChanged(index, 'border_style',  e))}
+            ${cmColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e))}
+            ${cmTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
+            ${cmTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
+            ${cmTextField('Style',          field.border_style,  e => this._fieldChanged(index, 'border_style',  e))}
           </div>
 
           <!-- Row 7: Padding -->
           <div class="row-padding">
-            ${ctTextField('Padding top (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
-            ${ctTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
-            ${ctTextField('Padding left (px)',   field.padding_left,   e => this._fieldChanged(index, 'padding_left',   e), { type: 'number', step: '1', min: '0' })}
-            ${ctTextField('Padding right (px)',  field.padding_right,  e => this._fieldChanged(index, 'padding_right',  e), { type: 'number', step: '1', min: '0' })}
+            ${cmTextField('Padding top (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
+            ${cmTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+            ${cmTextField('Padding left (px)',   field.padding_left,   e => this._fieldChanged(index, 'padding_left',   e), { type: 'number', step: '1', min: '0' })}
+            ${cmTextField('Padding right (px)',  field.padding_right,  e => this._fieldChanged(index, 'padding_right',  e), { type: 'number', step: '1', min: '0' })}
           </div>
 
         </ha-expansion-panel>
@@ -759,17 +761,17 @@ class ChronoTextCardEditor extends LitElement {
     `;
   }
 }
-customElements.define('chrono-text-card-editor', ChronoTextCardEditor);
+customElements.define('chrono-markdown-card-editor', ChronoMarkdownCardEditor);
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
-class ChronoTextCard extends LitElement {
+class ChronoMarkdownCard extends LitElement {
   static properties = {
     _config:      { attribute: false },
     _fieldValues: { state: true },
   };
 
   static getConfigElement() {
-    return document.createElement('chrono-text-card-editor');
+    return document.createElement('chrono-markdown-card-editor');
   }
 
   static getStubConfig() {
@@ -919,4 +921,4 @@ class ChronoTextCard extends LitElement {
     `;
   }
 }
-customElements.define('chrono-text-card', ChronoTextCard);
+customElements.define('chrono-markdown-card', ChronoMarkdownCard);
