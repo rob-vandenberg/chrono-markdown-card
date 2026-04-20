@@ -3,7 +3,7 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.25.1';
+const CARD_VERSION = '0.1.25.2';
 
 // ─── Version History ──────────────────────────────────────────────────────────
 // v0.1.25: Fix CmSelect: tab no longer opens dropdown; selected value written to
@@ -707,7 +707,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
     .row-bg-shadow {
       display: grid;
-      grid-template-columns: 6fr 2fr 2fr 2fr 2fr;
+      grid-template-columns: 5fr 2fr 2fr 2fr 2fr;
       gap: 8px;
       align-items: end;
       margin-bottom: 8px;
