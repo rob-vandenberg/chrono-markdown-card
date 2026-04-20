@@ -3,9 +3,11 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.20';
+const CARD_VERSION = '0.1.21';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.1.21: Replace CmSelect custom element with inline Lit template combobox
+//          to eliminate shadow DOM host sizing issues
 // v0.1.20: Rebuild CmSelect as styled combobox (free text + dropdown options),
 //          fix content textarea label, restore Title field default content
 // v0.1.19: Add CmSelect component and cmSelectField helper; text-align and
@@ -207,15 +209,33 @@ function cmTextArea(label, value, onChange) {
 }
 
 // ─── cmSelectField ────────────────────────────────────────────────────────────
-function cmSelectField(label, value, options, onChange) {
+// Inline combobox — no custom element, no shadow DOM, no host sizing issues.
+// open/onToggle/onKeyDown are provided by the editor instance.
+function cmSelectField(label, value, options, onChange, open, onToggle, onKeyDown) {
   return html`
     <div class="text-field">
       <label>${label}</label>
-      <chrono-cm-select
-        .value=${value ?? ''}
-        .options=${options}
-        @change=${onChange}
-      ></chrono-cm-select>
+      <div class="combobox-wrap">
+        <div class="combobox ${open ? 'combobox-open' : ''}">
+          <input
+            .value=${live(String(value ?? ''))}
+            @input=${onChange}
+            @keydown=${onKeyDown}
+            @focus=${onToggle}
+          >
+          <div class="combobox-chevron" @click=${onToggle} aria-hidden="true">▾</div>
+        </div>
+        ${open ? html`
+          <div class="combobox-dropdown">
+            ${options.map(opt => html`
+              <div
+                class="combobox-option ${opt.value === value ? 'combobox-option-selected' : ''}"
+                @mousedown=${(e) => { e.preventDefault(); onChange({ target: { value: opt.value }, detail: { value: opt.value } }); onToggle(); }}
+              >${opt.label}</div>
+            `)}
+          </div>
+        ` : ''}
+      </div>
     </div>
   `;
 }
@@ -275,192 +295,6 @@ class CmTextfield extends LitElement {
   }
 }
 customElements.define('chrono-cm-textfield', CmTextfield);
-
-// ─── chrono-cm-select component ───────────────────────────────────────────────
-// Combobox: free-text input + styled dropdown suggestions.
-// User can type any value or pick from the options list.
-class CmSelect extends LitElement {
-  static properties = {
-    value:   { type: String },
-    options: { type: Array },
-    _open:   { state: true },
-  };
-
-  constructor() {
-    super();
-    this.value   = '';
-    this.options = [];
-    this._open   = false;
-    this._onOutsideClick = this._onOutsideClick.bind(this);
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    document.addEventListener('click', this._onOutsideClick);
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    document.removeEventListener('click', this._onOutsideClick);
-  }
-
-  _onOutsideClick(e) {
-    if (!this.shadowRoot.contains(e.composedPath()[0])) {
-      this._open = false;
-    }
-  }
-
-  _onInputChange(e) {
-    this.value = e.target.value;
-    this.dispatchEvent(new CustomEvent('change', { detail: { value: this.value }, bubbles: true, composed: true }));
-  }
-
-  _selectOption(val) {
-    this.value = val;
-    this._open = false;
-    this.dispatchEvent(new CustomEvent('change', { detail: { value: val }, bubbles: true, composed: true }));
-  }
-
-  _onKeyDown(e) {
-    const opts  = this.options ?? [];
-    const items = this.shadowRoot.querySelectorAll('.option');
-    const idx   = Array.from(items).findIndex(el => el.classList.contains('focused'));
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      this._open = true;
-      const next = idx < items.length - 1 ? idx + 1 : 0;
-      items.forEach(el => el.classList.remove('focused'));
-      items[next]?.classList.add('focused');
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      this._open = true;
-      const prev = idx > 0 ? idx - 1 : items.length - 1;
-      items.forEach(el => el.classList.remove('focused'));
-      items[prev]?.classList.add('focused');
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      const focused = this.shadowRoot.querySelector('.option.focused');
-      if (focused) {
-        this._selectOption(focused.dataset.value);
-      }
-    } else if (e.key === 'Escape') {
-      this._open = false;
-    }
-  }
-
-  static styles = css`
-    :host {
-      display: block;
-      width: 100%;
-      position: relative;
-    }
-    .combobox {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      box-sizing: border-box;
-      height: 56px;
-      background: var(--input-fill-color, rgba(0,0,0,0.06));
-      border: none;
-      border-bottom: 1px solid var(--secondary-text-color, #888);
-      border-radius: 4px 4px 0 0;
-      transition: border-bottom-color 0.2s;
-    }
-    .combobox:focus-within {
-      border-bottom: 2px solid var(--primary-color);
-    }
-    .combobox input {
-      flex: 1;
-      height: 100%;
-      padding: 0 8px 0 12px;
-      background: transparent;
-      border: none;
-      color: var(--primary-text-color);
-      font-size: 16px;
-      font-family: inherit;
-      outline: none;
-    }
-    .chevron {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 100%;
-      cursor: pointer;
-      color: var(--secondary-text-color);
-      font-size: 12px;
-      flex-shrink: 0;
-      user-select: none;
-    }
-    .chevron:hover {
-      color: var(--primary-text-color);
-    }
-    .dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      z-index: 9999;
-      background: var(--card-background-color, #1c1c1c);
-      border: 1px solid var(--divider-color, #444);
-      border-radius: 0 0 4px 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      max-height: 240px;
-      overflow-y: auto;
-      margin-top: 1px;
-    }
-    .option {
-      padding: 10px 12px;
-      font-size: 14px;
-      font-family: inherit;
-      color: var(--primary-text-color);
-      cursor: pointer;
-      transition: background 0.1s;
-    }
-    .option:hover,
-    .option.focused {
-      background: var(--secondary-background-color, rgba(255,255,255,0.08));
-    }
-    .option.selected {
-      color: var(--primary-color);
-    }
-  `;
-
-  render() {
-    const opts = this.options ?? [];
-    return html`
-      <div class="combobox">
-        <input
-          .value=${live(this.value ?? '')}
-          @input=${this._onInputChange}
-          @keydown=${this._onKeyDown}
-          @focus=${() => { this._open = true; }}
-          aria-autocomplete="list"
-          aria-expanded=${this._open}
-          role="combobox"
-        >
-        <div
-          class="chevron"
-          @click=${() => { this._open = !this._open; }}
-          aria-hidden="true"
-        >▾</div>
-      </div>
-      ${this._open ? html`
-        <div class="dropdown" role="listbox">
-          ${opts.map(opt => html`
-            <div
-              class="option ${opt.value === this.value ? 'selected' : ''}"
-              role="option"
-              data-value=${opt.value}
-              @click=${() => this._selectOption(opt.value)}
-            >${opt.label}</div>
-          `)}
-        </div>
-      ` : ''}
-    `;
-  }
-}
-customElements.define('chrono-cm-select', CmSelect);
 
 // ─── chrono-cm-textarea component ─────────────────────────────────────────────
 class CmTextarea extends LitElement {
@@ -597,9 +431,44 @@ customElements.define('chrono-cm-button-toggle-group', CmButtonToggleGroup);
 // ─── Editor ───────────────────────────────────────────────────────────────────
 class ChronoMarkdownCardEditor extends LitElement {
   static properties = {
-    hass:    { attribute: false },
-    _config: { state: true },
+    hass:         { attribute: false },
+    _config:      { state: true },
+    _openSelects: { state: true },
   };
+
+  constructor() {
+    super();
+    this._openSelects = {};
+    this._onOutsideClick = this._onOutsideClick.bind(this);
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    document.addEventListener('click', this._onOutsideClick);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('click', this._onOutsideClick);
+  }
+
+  _onOutsideClick(e) {
+    if (Object.values(this._openSelects).some(v => v)) {
+      if (!this.shadowRoot.contains(e.composedPath()[0])) {
+        this._openSelects = {};
+      }
+    }
+  }
+
+  _toggleSelect(key) {
+    this._openSelects = { ...this._openSelects, [key]: !this._openSelects[key] };
+  }
+
+  _closeSelect(key) {
+    if (this._openSelects[key]) {
+      this._openSelects = { ...this._openSelects, [key]: false };
+    }
+  }
 
   setConfig(config) {
     this._config = { ...DEFAULT_CONFIG, ...config };
@@ -775,6 +644,92 @@ class ChronoMarkdownCardEditor extends LitElement {
       flex: 1;
     }
 
+    /* ── Combobox (inline select with free text) ───────────────────────────── */
+
+    .combobox-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    .combobox {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
+      height: 56px;
+      background: var(--input-fill-color, rgba(0,0,0,0.06));
+      border: none;
+      border-bottom: 1px solid var(--secondary-text-color, #888);
+      border-radius: 4px 4px 0 0;
+      transition: border-bottom-color 0.2s;
+    }
+
+    .combobox:focus-within,
+    .combobox-open {
+      border-bottom: 2px solid var(--primary-color);
+    }
+
+    .combobox input {
+      flex: 1;
+      height: 100%;
+      padding: 0 8px 0 12px;
+      background: transparent;
+      border: none;
+      color: var(--primary-text-color);
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .combobox-chevron {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 100%;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      font-size: 12px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .combobox-chevron:hover {
+      color: var(--primary-text-color);
+    }
+
+    .combobox-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      background: var(--card-background-color, #1c1c1c);
+      border: 1px solid var(--divider-color, #444);
+      border-radius: 0 0 4px 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      max-height: 240px;
+      overflow-y: auto;
+      margin-top: 1px;
+    }
+
+    .combobox-option {
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--primary-text-color);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .combobox-option:hover {
+      background: var(--secondary-background-color, rgba(255,255,255,0.08));
+    }
+
+    .combobox-option-selected {
+      color: var(--primary-color);
+    }
+
     /* ── Toggle fields (ha-switch: label left, switch right) ───────────────── */
 
     .toggle-field {
@@ -922,7 +877,7 @@ class ChronoMarkdownCardEditor extends LitElement {
           ${cmColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
           ${cmTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
           ${cmTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
-          ${cmSelectField('Style', c.border_style, this._borderStyleOptions, e => this._valueChanged('border_style', e))}
+          ${cmSelectField('Style', c.border_style, this._borderStyleOptions, e => this._valueChanged('border_style', e), this._openSelects['card_border_style'], () => this._toggleSelect('card_border_style'), () => this._closeSelect('card_border_style'))}
         </div>
 
         <!-- Row 3: Padding -->
@@ -970,7 +925,7 @@ class ChronoMarkdownCardEditor extends LitElement {
             ${cmTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
             ${cmTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
             ${cmTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
-            ${cmSelectField('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e))}
+            ${cmSelectField('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e), this._openSelects[`field_${index}_text_align`], () => this._toggleSelect(`field_${index}_text_align`), () => this._closeSelect(`field_${index}_text_align`))}
           </div>
 
           <!-- Row 5: Colors -->
@@ -984,7 +939,7 @@ class ChronoMarkdownCardEditor extends LitElement {
             ${cmColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e))}
             ${cmTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
             ${cmTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
-            ${cmSelectField('Style',       field.border_style,  this._borderStyleOptions, e => this._fieldChanged(index, 'border_style',  e))}
+            ${cmSelectField('Style',       field.border_style,  this._borderStyleOptions, e => this._fieldChanged(index, 'border_style',  e), this._openSelects[`field_${index}_border_style`], () => this._toggleSelect(`field_${index}_border_style`), () => this._closeSelect(`field_${index}_border_style`))}
           </div>
 
           <!-- Row 7: Padding -->
