@@ -4,9 +4,13 @@ import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/st
 import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.1.27';
+const CARD_VERSION = '0.2.28';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.2.28: Unsubscribe type guard; fix line_breaks editor default; fix stale
+//          WebSocket subscriptions on reconnect; debounced content-aware
+//          re-subscription; fix CmTextarea cursor reset on external value change;
+//          add field reorder ▲/▼ buttons
 // v0.1.27: Multiple small changes to the layout of the editor fields
 // v0.1.26: Multiple small changes to the layout of the editor fields
 // v0.1.25: Fix CmSelect: tab no longer opens dropdown; selected value written to
@@ -333,7 +337,7 @@ class CmTextarea extends LitElement {
   updated(changedProps) {
     if (changedProps.has('value')) {
       const el = this.shadowRoot.querySelector('.editor');
-      if (el && el.innerText !== this.value) {
+      if (el && el !== document.activeElement && el.innerText !== this.value) {
         el.innerText = this.value ?? '';
       }
     }
@@ -698,6 +702,15 @@ class ChronoMarkdownCardEditor extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
   }
 
+  _moveField(index, direction) {
+    const fields    = [...this._config.fields];
+    const swapIndex = index + direction;
+    if (swapIndex < 0 || swapIndex >= fields.length) return;
+    [fields[index], fields[swapIndex]] = [fields[swapIndex], fields[index]];
+    this._config = { ...this._config, fields };
+    this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
+  }
+
   static styles = css`
 
     /* ── Expansion panel spacing ───────────────────────────────────────────── */
@@ -917,6 +930,34 @@ class ChronoMarkdownCardEditor extends LitElement {
       cursor: default;
     }
 
+    .move-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      padding: 4px 6px;
+      font-size: 14px;
+      line-height: 1;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .move-btn:hover:not(:disabled) {
+      color: var(--primary-text-color);
+      background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
+    }
+
+    .move-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .panel-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
   `;
 
   // ── Option arrays (defined once, reused in render) ─────────────────────────
@@ -977,11 +1018,23 @@ class ChronoMarkdownCardEditor extends LitElement {
 
           <div class="panel-header" slot="header">
             <span>${field.name || `Field ${index + 1}`}</span>
-            <button
-              class="remove-btn"
-              ?disabled=${fields.length <= 1}
-              @click=${e => { e.stopPropagation(); this._removeField(index); }}
-            >✕</button>
+            <div class="panel-header-actions">
+              <button
+                class="move-btn"
+                ?disabled=${index === 0}
+                @click=${e => { e.stopPropagation(); this._moveField(index, -1); }}
+              >▲</button>
+              <button
+                class="move-btn"
+                ?disabled=${index === fields.length - 1}
+                @click=${e => { e.stopPropagation(); this._moveField(index, 1); }}
+              >▼</button>
+              <button
+                class="remove-btn"
+                ?disabled=${fields.length <= 1}
+                @click=${e => { e.stopPropagation(); this._removeField(index); }}
+              >✕</button>
+            </div>
           </div>
 
           <!-- Row 1: Name (full width) -->
@@ -992,7 +1045,7 @@ class ChronoMarkdownCardEditor extends LitElement {
           <!-- Row 2: Show / Line breaks toggles -->
           <div class="field-show-toggles">
             ${cmToggleField('Show',        field.show        ?? true, e => this._fieldToggled(index, 'show',        e))}
-            ${cmToggleField('Line breaks', field.line_breaks ?? true, e => this._fieldToggled(index, 'line_breaks', e))}
+            ${cmToggleField('Line breaks', field.line_breaks ?? false, e => this._fieldToggled(index, 'line_breaks', e))}
           </div>
 
           <!-- Row 3: Content (full width, textarea) -->
@@ -1061,16 +1114,20 @@ class ChronoMarkdownCard extends LitElement {
 
   constructor() {
     super();
-    this._config         = null;
-    this._hass           = null;
-    this._fieldValues    = [];
-    this._templateUnsubs = [];
+    this._config              = null;
+    this._hass                = null;
+    this._fieldValues         = [];
+    this._templateUnsubs      = [];
+    this._resubDebounceTimer  = null;
   }
 
   set hass(hass) {
+    const prevConnection = this._hass?.connection;
     this._hass = hass;
-    if (this._config && this._templateUnsubs.length === 0) {
-      this._setupSubscriptions();
+    if (this._config) {
+      if (hass.connection !== prevConnection || this._templateUnsubs.length === 0) {
+        this._setupSubscriptions();
+      }
     }
   }
 
@@ -1079,11 +1136,58 @@ class ChronoMarkdownCard extends LitElement {
   }
 
   setConfig(config) {
-    this._teardownSubscriptions();
-    this._config = { ...DEFAULT_CONFIG, ...config };
-    if (this._hass) {
+    const newConfig  = { ...DEFAULT_CONFIG, ...config };
+    const oldFields  = this._config?.fields ?? [];
+    const newFields  = newConfig.fields ?? [];
+
+    // Determine whether any field content values have changed.
+    const contentChanged = () => {
+      if (oldFields.length !== newFields.length) return true;
+      return newFields.some((f, i) => f.content !== oldFields[i].content);
+    };
+
+    const isTemplate = (content) =>
+      typeof content === 'string' && content.includes('{{') && content.includes('}}');
+
+    const wasTemplate = oldFields.some(f => isTemplate(f.content));
+
+    this._config = newConfig;
+
+    if (!this._hass) return;
+
+    // No existing subscriptions yet — set up unconditionally.
+    if (this._templateUnsubs.length === 0) {
       this._setupSubscriptions();
+      return;
     }
+
+    if (!contentChanged()) return;
+
+    // Transitioning from template to non-template: re-subscribe immediately.
+    const hasTemplate = newFields.some(f => isTemplate(f.content));
+    if (wasTemplate && !hasTemplate) {
+      if (this._resubDebounceTimer !== null) {
+        clearTimeout(this._resubDebounceTimer);
+        this._resubDebounceTimer = null;
+      }
+      this._setupSubscriptions();
+      return;
+    }
+
+    // Content changed and new content contains a template: debounce re-subscription.
+    if (hasTemplate) {
+      if (this._resubDebounceTimer !== null) {
+        clearTimeout(this._resubDebounceTimer);
+      }
+      this._resubDebounceTimer = setTimeout(() => {
+        this._resubDebounceTimer = null;
+        this._setupSubscriptions();
+      }, 1500);
+      return;
+    }
+
+    // Content changed but no templates involved: re-subscribe immediately (cheap, synchronous).
+    this._setupSubscriptions();
   }
 
   connectedCallback() {
@@ -1126,6 +1230,7 @@ class ChronoMarkdownCard extends LitElement {
 
   _teardownSubscriptions() {
     this._templateUnsubs.forEach(unsub => {
+      if (typeof unsub !== 'function') return;
       try {
         const result = unsub();
         if (result && typeof result.catch === 'function') {
@@ -1140,7 +1245,7 @@ class ChronoMarkdownCard extends LitElement {
     :host {
       display: block;
     }
-    .text-container {
+    .markdown-container {
       box-sizing: border-box;
       position: relative;
       background-color: var(--ha-card-background, var(--card-background-color, white));
@@ -1150,7 +1255,7 @@ class ChronoMarkdownCard extends LitElement {
       border-style: solid;
       box-shadow: var(--ha-card-box-shadow, none);
     }
-    .text-layer {
+    .markdown-layer {
       display: flex;
       flex-direction: column;
     }
@@ -1192,8 +1297,8 @@ class ChronoMarkdownCard extends LitElement {
     const fields = c.fields ?? [];
 
     return html`
-      <div class="text-container" style=${styleMap(containerStyles)}>
-        <div class="text-layer">
+      <div class="markdown-container" style=${styleMap(containerStyles)}>
+        <div class="markdown-layer">
           ${fields.map((field, i) => {
             const fieldStyles = {
               'display':          field.show === false ? 'none' : undefined,
