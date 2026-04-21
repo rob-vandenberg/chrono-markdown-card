@@ -3,7 +3,7 @@
 
   [![](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
   [![](https://img.shields.io/badge/License-AGPL_3.0-blue.svg?style=for-the-badge)](https://www.gnu.org/licenses/agpl-3.0)
-  [![](https://img.shields.io/badge/Version-0.1.27-brightgreen.svg?style=for-the-badge)](#)
+  [![](https://img.shields.io/badge/Version-0.2.35-brightgreen.svg?style=for-the-badge)](#)
 
   <img src="art/header.svg" width="780" alt="Chrono Markdown Card Banner">
 
@@ -11,7 +11,9 @@
   <img src="art/banner.png" width="800" alt="Chrono Markdown Card Banner">
 
   <p align="center">
-    <strong>A flexible multi-field text card for Home Assistant dashboards. Each field is independently styled and supports Markdown, HTML, and live Jinja2 templates.</strong>
+    <strong>A flexible multi-field text card for Home Assistant dashboards.<br>
+            Each field is independently styled and supports<br>
+            Markdown, HTML, and live Jinja2 templates.</strong>
   </p>
 
   <p align="center">
