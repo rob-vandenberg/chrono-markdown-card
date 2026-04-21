@@ -4,9 +4,11 @@ import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/st
 import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.2.29';
+const CARD_VERSION = '0.2.30';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.2.30: Replace ▲/▼ buttons with ha-sortable drag-and-drop; replace ✕ button
+//          with ha-icon-button; add mdiDelete and mdiDragHorizontalVariant icons
 // v0.2.29: Move ▲/▼/✕ buttons from slot=header to slot=icons; set field name
 //          via header attribute; remove dead panel-header CSS
 // v0.2.28: Unsubscribe type guard; fix line_breaks editor default; fix stale
@@ -59,6 +61,10 @@ const CARD_VERSION = '0.2.29';
 //         border reorder, border style as plain text field, card bg default transparent
 // v0.0.1: Full editor UI, card render, numeric field handling, DEFAULT_FIELD.background_color fix
 // v0.0.0: Initial skeleton — imports, version, constants, helper classes, empty editor and card classes
+
+// ─── MDI icon paths ───────────────────────────────────────────────────────────
+const mdiDragHorizontalVariant = 'M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z';
+const mdiDelete             = 'M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z';
 
 // ─── Console log ──────────────────────────────────────────────────────────────
 console.info(
@@ -704,11 +710,11 @@ class ChronoMarkdownCardEditor extends LitElement {
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
   }
 
-  _moveField(index, direction) {
-    const fields    = [...this._config.fields];
-    const swapIndex = index + direction;
-    if (swapIndex < 0 || swapIndex >= fields.length) return;
-    [fields[index], fields[swapIndex]] = [fields[swapIndex], fields[index]];
+  _fieldMoved(e) {
+    e.stopPropagation();
+    const { oldIndex, newIndex } = e.detail;
+    const fields = [...this._config.fields];
+    fields.splice(newIndex, 0, fields.splice(oldIndex, 1)[0]);
     this._config = { ...this._config, fields };
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: this._config }, bubbles: true, composed: true }));
   }
@@ -897,50 +903,24 @@ class ChronoMarkdownCardEditor extends LitElement {
       background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
     }
 
-    /* ── Expansion panel header buttons ───────────────────────────────────── */
+    /* ── Drag handle and delete button ────────────────────────────────────── */
 
-    .remove-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
+    .handle {
+      cursor: move;
+      cursor: grab;
+      padding: 0 4px;
       color: var(--secondary-text-color);
-      padding: 4px 8px;
-      font-size: 18px;
-      line-height: 1;
-      border-radius: 4px;
-      transition: color 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
     }
 
-    .remove-btn:hover:not(:disabled) {
-      color: var(--error-color, #f44336);
-      background: rgba(244, 67, 54, 0.08);
+    .handle > * {
+      pointer-events: none;
     }
 
-    .remove-btn:disabled {
-      opacity: 0.3;
-      cursor: default;
-    }
-
-    .move-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
+    ha-icon-button.remove-icon {
+      --ha-icon-button-size: 36px;
       color: var(--secondary-text-color);
-      padding: 4px 6px;
-      font-size: 14px;
-      line-height: 1;
-      border-radius: 4px;
-      transition: color 0.15s, background 0.15s;
-    }
-
-    .move-btn:hover:not(:disabled) {
-      color: var(--primary-text-color);
-      background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
-    }
-
-    .move-btn:disabled {
-      opacity: 0.3;
-      cursor: default;
     }
 
   `;
@@ -998,25 +978,22 @@ class ChronoMarkdownCardEditor extends LitElement {
 
       <!-- ── Fields section ───────────────────────────────────────────────── -->
 
+      <ha-sortable handle-selector=".handle" @item-moved=${this._fieldMoved}>
+        <div class="fields-list">
       ${fields.map((field, index) => html`
         <ha-expansion-panel outlined header=${field.name || `Field ${index + 1}`}>
 
           <div slot="icons">
-            <button
-              class="move-btn"
-              ?disabled=${index === 0}
-              @click=${() => this._moveField(index, -1)}
-            >▲</button>
-            <button
-              class="move-btn"
-              ?disabled=${index === fields.length - 1}
-              @click=${() => this._moveField(index, 1)}
-            >▼</button>
-            <button
-              class="remove-btn"
+            <ha-icon-button
+              class="remove-icon"
+              .path=${mdiDelete}
               ?disabled=${fields.length <= 1}
               @click=${() => this._removeField(index)}
-            >✕</button>
+            ></ha-icon-button>
+          </div>
+
+          <div class="handle" slot="leading-icon">
+            <ha-svg-icon .path=${mdiDragHorizontalVariant}></ha-svg-icon>
           </div>
 
           <!-- Row 1: Name (full width) -->
@@ -1063,6 +1040,8 @@ class ChronoMarkdownCardEditor extends LitElement {
 
         </ha-expansion-panel>
       `)}
+        </div>
+      </ha-sortable>
 
       <!-- ── Add field button ──────────────────────────────────────────────── -->
 
