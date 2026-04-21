@@ -4,9 +4,11 @@ import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/st
 import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.2.30';
+const CARD_VERSION = '0.2.31';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.2.31: Replace ha-icon-button delete with "Remove field" button inside
+//          field panel; remove dead mdiDelete constant
 // v0.2.30: Replace ▲/▼ buttons with ha-sortable drag-and-drop; replace ✕ button
 //          with ha-icon-button; add mdiDelete and mdiDragHorizontalVariant icons
 // v0.2.29: Move ▲/▼/✕ buttons from slot=header to slot=icons; set field name
@@ -64,7 +66,6 @@ const CARD_VERSION = '0.2.30';
 
 // ─── MDI icon paths ───────────────────────────────────────────────────────────
 const mdiDragHorizontalVariant = 'M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z';
-const mdiDelete             = 'M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z';
 
 // ─── Console log ──────────────────────────────────────────────────────────────
 console.info(
@@ -918,9 +919,35 @@ class ChronoMarkdownCardEditor extends LitElement {
       pointer-events: none;
     }
 
-    ha-icon-button.remove-icon {
-      --ha-icon-button-size: 36px;
-      color: var(--secondary-text-color);
+    .remove-field-row {
+      display: flex;
+      justify-content: center;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+
+    .remove-field-btn {
+      background: none;
+      border: none;
+      color: var(--error-color, #f44336);
+      font-size: 0.875rem;
+      font-weight: 500;
+      font-family: inherit;
+      letter-spacing: 0.0892857em;
+      text-transform: uppercase;
+      height: 36px;
+      padding: 0 8px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .remove-field-btn:hover:not(:disabled) {
+      background: rgba(244, 67, 54, 0.08);
+    }
+
+    .remove-field-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
     }
 
   `;
@@ -983,14 +1010,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       ${fields.map((field, index) => html`
         <ha-expansion-panel outlined header=${field.name || `Field ${index + 1}`}>
 
-          <div slot="icons">
-            <ha-icon-button
-              class="remove-icon"
-              .path=${mdiDelete}
-              ?disabled=${fields.length <= 1}
-              @click=${() => this._removeField(index)}
-            ></ha-icon-button>
-          </div>
+
 
           <div class="handle" slot="leading-icon">
             <ha-svg-icon .path=${mdiDragHorizontalVariant}></ha-svg-icon>
@@ -1036,6 +1056,15 @@ class ChronoMarkdownCardEditor extends LitElement {
             ${cmTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
             ${cmTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
             ${cmSelectField('Style',       field.border_style,  this._borderStyleOptions, e => this._fieldChanged(index, 'border_style',  e))}
+          </div>
+
+          <!-- Remove field button -->
+          <div class="remove-field-row">
+            <button
+              class="remove-field-btn"
+              ?disabled=${fields.length <= 1}
+              @click=${() => this._removeField(index)}
+            >Remove field</button>
           </div>
 
         </ha-expansion-panel>
