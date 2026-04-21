@@ -4,9 +4,11 @@ import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/st
 import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.2.28';
+const CARD_VERSION = '0.2.29';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.2.29: Move ▲/▼/✕ buttons from slot=header to slot=icons; set field name
+//          via header attribute; remove dead panel-header CSS
 // v0.2.28: Unsubscribe type guard; fix line_breaks editor default; fix stale
 //          WebSocket subscriptions on reconnect; debounced content-aware
 //          re-subscription; fix CmTextarea cursor reset on external value change;
@@ -895,18 +897,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
     }
 
-    /* ── Expansion panel header (remove button) ────────────────────────────── */
-
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-    }
-
-    .panel-header span {
-      font-size: 14px;
-    }
+    /* ── Expansion panel header buttons ───────────────────────────────────── */
 
     .remove-btn {
       background: none;
@@ -950,12 +941,6 @@ class ChronoMarkdownCardEditor extends LitElement {
     .move-btn:disabled {
       opacity: 0.3;
       cursor: default;
-    }
-
-    .panel-header-actions {
-      display: flex;
-      align-items: center;
-      gap: 2px;
     }
 
   `;
@@ -1014,27 +999,24 @@ class ChronoMarkdownCardEditor extends LitElement {
       <!-- ── Fields section ───────────────────────────────────────────────── -->
 
       ${fields.map((field, index) => html`
-        <ha-expansion-panel outlined>
+        <ha-expansion-panel outlined header=${field.name || `Field ${index + 1}`}>
 
-          <div class="panel-header" slot="header">
-            <span>${field.name || `Field ${index + 1}`}</span>
-            <div class="panel-header-actions">
-              <button
-                class="move-btn"
-                ?disabled=${index === 0}
-                @click=${e => { e.stopPropagation(); this._moveField(index, -1); }}
-              >▲</button>
-              <button
-                class="move-btn"
-                ?disabled=${index === fields.length - 1}
-                @click=${e => { e.stopPropagation(); this._moveField(index, 1); }}
-              >▼</button>
-              <button
-                class="remove-btn"
-                ?disabled=${fields.length <= 1}
-                @click=${e => { e.stopPropagation(); this._removeField(index); }}
-              >✕</button>
-            </div>
+          <div slot="icons">
+            <button
+              class="move-btn"
+              ?disabled=${index === 0}
+              @click=${() => this._moveField(index, -1)}
+            >▲</button>
+            <button
+              class="move-btn"
+              ?disabled=${index === fields.length - 1}
+              @click=${() => this._moveField(index, 1)}
+            >▼</button>
+            <button
+              class="remove-btn"
+              ?disabled=${fields.length <= 1}
+              @click=${() => this._removeField(index)}
+            >✕</button>
           </div>
 
           <!-- Row 1: Name (full width) -->
