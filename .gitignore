@@ -10,15 +10,6 @@ screenshot/
 github/
 
 # Files
-*.bat
 *.ai
 *.psd
-gitdelete.bat
-gitremove.bat
-gitrmdir.bat
-gitrmtag.bat
-gitrelease.bat
-release.bat
-release-notes.md
-set_version.py
-Suggestions.txt
+*.bat
