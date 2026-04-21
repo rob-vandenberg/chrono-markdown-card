@@ -4,12 +4,15 @@ import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/st
 import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.2.34';
+const CARD_VERSION = '0.2.35';
 
 // ─── MDI icon paths ───────────────────────────────────────────────────────────
 const mdiDragHorizontalVariant = 'M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.2.35: Simplify cmColorPicker: remove CSS variable resolution, use #000000
+//          as swatch fallback when value is empty, guard @change to prevent
+//          #000000 from being written to config
 // v0.2.34: Fix color swatch console error; resolve CSS variable fallback color
 //          for swatch display when color field is empty
 // v0.2.28: Unsubscribe type guard; fix line_breaks editor default; fix stale
@@ -127,22 +130,6 @@ function cmParseNumber(raw) {
   return isNaN(n) ? null : n;
 }
 
-// ─── rgb2hex ──────────────────────────────────────────────────────────────────
-// Converts rgb(r, g, b) or rgba(r, g, b, a) returned by getComputedStyle
-// to #rrggbb or #rrggbbaa for use in <input type="color">.
-function rgb2hex(rgb) {
-  const match = rgb.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/);
-  if (!match) return '#000000';
-  const r = parseInt(match[1]).toString(16).padStart(2, '0');
-  const g = parseInt(match[2]).toString(16).padStart(2, '0');
-  const b = parseInt(match[3]).toString(16).padStart(2, '0');
-  if (match[4] !== undefined) {
-    const a = Math.round(parseFloat(match[4]) * 255).toString(16).padStart(2, '0');
-    return `#${r}${g}${b}${a}`;
-  }
-  return `#${r}${g}${b}`;
-}
-
 // ─── cmTextField ──────────────────────────────────────────────────────────────
 function cmTextField(label, value, onChange, opts = {}) {
   return html`
@@ -171,22 +158,14 @@ function cmToggleField(label, checked, onChange, extraClass = '') {
 }
 
 // ─── cmColorPicker ────────────────────────────────────────────────────────────
-// host       — the editor element (this), used to resolve CSS variables via getComputedStyle
-// fallbackVar — CSS variable name to resolve when value is empty, e.g. '--primary-text-color'
-function cmColorPicker(label, value, onChange, host, fallbackVar) {
-  let swatchValue = value || '#000000';
-  if (!value && host && fallbackVar) {
-    const computed = getComputedStyle(host).getPropertyValue(fallbackVar).trim();
-    if (computed) {
-      swatchValue = rgb2hex(computed);
-    }
-  }
+function cmColorPicker(label, value, onChange) {
+  const swatchValue = value || '#000000';
   return html`
     <div class="text-field">
       <label>${unsafeHTML(label)}</label>
       <div class="color-picker-row">
         <input type="color" .value=${swatchValue} @input=${onChange}
-          @change=${(e) => { if (e.target.value !== swatchValue) onChange(e); }}>
+          @change=${(e) => { if (e.target.value !== '#000000') onChange(e); }}>
         <chrono-cm-textfield
           .value=${String(value ?? '')}
           @input=${onChange}
@@ -982,7 +961,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
         <!-- Row 1: Background color / Padding -->
         <div class="card-bg-color-padding">
-          ${cmColorPicker('Background color\n<i>leave empty for default</i>', c.background_color, e => this._valueChanged('background_color', e), this, '--ha-card-background')}
+          ${cmColorPicker('Background color\n<i>leave empty for default</i>', c.background_color, e => this._valueChanged('background_color', e))}
           ${cmTextField('Padding\ntop (px)',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
           ${cmTextField('Padding bottom (px)', c.padding_bottom, e => this._valueChanged('padding_bottom', e), { type: 'number', step: '1', min: '0' })}
           ${cmTextField('Padding left (px)',   c.padding_left,   e => this._valueChanged('padding_left',   e), { type: 'number', step: '1', min: '0' })}
@@ -991,7 +970,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
         <!-- Row 2: Border — color, width, radius, style -->
         <div class="card-border-styling">
-          ${cmColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e), this, '--ha-card-border-color')}
+          ${cmColorPicker('Border color', c.border_color, e => this._valueChanged('border_color', e))}
           ${cmTextField('Width (px)', c.border_width, e => this._valueChanged('border_width', e), { type: 'number', step: '1', min: '0' })}
           ${cmTextField('Radius (px)', c.border_radius, e => this._valueChanged('border_radius', e), { type: 'number', step: '1', min: '0' })}
           ${cmSelectField('Border style', c.border_style, this._borderStyleOptions, e => this._valueChanged('border_style', e))}
@@ -1028,7 +1007,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
               <!-- Row 4: Typography — font color, font size, font weight, line height, text align -->
               <div class="field-typography">
-                ${cmColorPicker('Font color', field.color, e => this._fieldChanged(index, 'color', e), this, '--primary-text-color')}
+                ${cmColorPicker('Font color', field.color, e => this._fieldChanged(index, 'color', e))}
                 ${cmTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
                 ${cmTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
                 ${cmTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
@@ -1037,7 +1016,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
               <!-- Row 5: Background color and padding -->
               <div class="field-bg-color-padding">
-                ${cmColorPicker('Background color', field.background_color, e => this._fieldChanged(index, 'background_color', e), this, '--ha-card-background')}
+                ${cmColorPicker('Background color', field.background_color, e => this._fieldChanged(index, 'background_color', e))}
                 ${cmTextField('Padding\ntop (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
                 ${cmTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
                 ${cmTextField('Padding left (px)',   field.padding_left,   e => this._fieldChanged(index, 'padding_left',   e), { type: 'number', step: '1', min: '0' })}
@@ -1046,7 +1025,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
               <!-- Row 6: Border — color, width, radius, style -->
               <div class="field-border-styling">
-                ${cmColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e), this, '--ha-card-border-color')}
+                ${cmColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e))}
                 ${cmTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
                 ${cmTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
                 ${cmSelectField('Style',       field.border_style,  this._borderStyleOptions, e => this._fieldChanged(index, 'border_style',  e))}
