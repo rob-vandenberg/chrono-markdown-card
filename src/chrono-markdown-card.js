@@ -4,9 +4,11 @@ import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/st
 import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.2.31';
+const CARD_VERSION = '0.2.32';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.2.32: Fix color swatch console error — use || with #00000000 fallback
+//          instead of ?? '#ffffff' so empty string is handled correctly
 // v0.2.31: Replace ha-icon-button delete with "Remove field" button inside
 //          field panel; remove dead mdiDelete constant
 // v0.2.30: Replace ▲/▼ buttons with ha-sortable drag-and-drop; replace ✕ button
@@ -192,7 +194,7 @@ function cmColorPicker(label, value, onChange) {
     <div class="text-field">
       <label>${unsafeHTML(label)}</label>
       <div class="color-picker-row">
-        <input type="color" .value=${value ?? '#ffffff'} @input=${onChange}>
+        <input type="color" .value=${value || '#00000000'} @input=${onChange}>
         <chrono-cm-textfield
           .value=${String(value ?? '')}
           @input=${onChange}
