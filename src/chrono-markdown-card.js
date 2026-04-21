@@ -4,23 +4,18 @@ import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/st
 import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.2.32';
+const CARD_VERSION = '0.2.33';
+
+// ─── MDI icon paths ───────────────────────────────────────────────────────────
+const mdiDragHorizontalVariant = 'M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z';
 
 // ─── Version History ──────────────────────────────────────────────────────────
-// v0.2.32: Fix color swatch console error — use || with #00000000 fallback
-//          instead of ?? '#ffffff' so empty string is handled correctly
-// v0.2.31: Replace ha-icon-button delete with "Remove field" button inside
-//          field panel; remove dead mdiDelete constant
-// v0.2.30: Replace ▲/▼ buttons with ha-sortable drag-and-drop; replace ✕ button
-//          with ha-icon-button; add mdiDelete and mdiDragHorizontalVariant icons
-// v0.2.29: Move ▲/▼/✕ buttons from slot=header to slot=icons; set field name
-//          via header attribute; remove dead panel-header CSS
 // v0.2.28: Unsubscribe type guard; fix line_breaks editor default; fix stale
-//          WebSocket subscriptions on reconnect; debounced content-aware
-//          re-subscription; fix CmTextarea cursor reset on external value change;
-//          add field reorder ▲/▼ buttons
-// v0.1.27: Multiple small changes to the layout of the editor fields
-// v0.1.26: Multiple small changes to the layout of the editor fields
+//          WebSocket subscriptions on reconnect; smart content-aware re-subscription
+//          guard in setConfig (only re-subscribes when a content field changes
+//          and either old or new value contains a template); fix CmTextarea
+//          cursor reset; replace panel header buttons with ha-sortable
+//          drag-and-drop; add Remove field button; fix color swatch console error
 // v0.1.25: Fix CmSelect: tab no longer opens dropdown; selected value written to
 //          input; chevron click focuses input; tab-away closes dropdown
 // v0.1.24: Replace inline cmSelectField with shadow DOM CmSelect custom element;
@@ -37,37 +32,6 @@ const CARD_VERSION = '0.2.32';
 //          add border-color fallback to .text-field
 // v0.1.16: Split border shorthand into separate properties, add HA card CSS
 //          variable fallbacks for background, border, radius, shadow
-// v0.1.15: Switch to styleMap for dynamic styles, add link color CSS rule,
-//          fix default content \n\n, empty color falls back to HA theme vars
-// v0.1.14: Update all defaults to match HA markdown card styling exactly;
-//          CmTextarea max-height 20 lines, resize: vertical
-// v0.1.12: Replace CmTextarea textarea element with contenteditable div for
-//          natural auto-growing without JavaScript
-// v0.1.11: Textarea auto-resizes to content (max 8 lines), fix p margin to
-//          preserve inter-paragraph spacing, update default Content field text
-// v0.1.10: Project renamed to chrono-markdown-card; all ct- prefixes → cm-,
-//          ChronoTextCard → ChronoMarkdownCard, chrono-text-card → chrono-markdown-card
-// v0.1.9: Add line_breaks per-field toggle, Show+Line breaks on same row,
-//         card settings wrapped in collapsible ha-expansion-panel open by default
-// v0.1.8: Markdown support via ha-markdown-element; font-size inherits from
-//         field container so headings scale relative to field font-size setting
-// v0.0.7: Add chrono-cm-textarea component and cmTextArea helper, content field uses textarea
-// v0.0.6: Add button-picker-field class (column layout) for cmButtonPicker,
-//         toggle-field-in-text-row now targets button-picker-field
-// v0.0.5: toggle-field back to horizontal (matches compass), remove toggle-field-switch,
-//         field-show-toggles margins match compass field-toggles-grid, Add button as plain styled button
-// v0.0.4: Fix panel header vertical centering (remove *:first-child rules, use
-//         margin-top on field-name instead), fix toggle-field back to column,
-//         add toggle-field-switch for ha-switch horizontal layout
-// v0.0.3: Fix panel spacing, toggle-field layout horizontal, show on own row,
-//         text align button group top-aligned with padding-top in text row
-// v0.0.2: label→name, add show toggle, content on full row, typography reorder,
-//         border reorder, border style as plain text field, card bg default transparent
-// v0.0.1: Full editor UI, card render, numeric field handling, DEFAULT_FIELD.background_color fix
-// v0.0.0: Initial skeleton — imports, version, constants, helper classes, empty editor and card classes
-
-// ─── MDI icon paths ───────────────────────────────────────────────────────────
-const mdiDragHorizontalVariant = 'M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z';
 
 // ─── Console log ──────────────────────────────────────────────────────────────
 console.info(
@@ -85,52 +49,52 @@ const DEFAULT_FIELD = {
   color:            '',
   font_size:        1.0,
   font_weight:      400,
-  line_height:      1.4,
   text_align:       'left',
+  line_height:      1.4,
   background_color: '',
+  border_width:     0,
+  border_style:     'solid',
+  border_color:     '',
+  border_radius:    12,
   padding_top:      8,
   padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
-  border_color:     '',
-  border_width:     0,
-  border_radius:    12,
-  border_style:     'solid',
 };
 
 const DEFAULT_CONFIG = {
   background_color: '',
+  border_width:     1,
+  border_style:     'solid',
+  border_color:     '',
+  border_radius:    12,
   padding_top:      8,
   padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
-  border_color:     '',
-  border_width:     1,
-  border_radius:    12,
-  border_style:     'solid',
   box_shadow:       '',
   fields: [
     {
       ...DEFAULT_FIELD,
-      name:         'Title',
-      show:         false,
-      line_breaks:  false,
-      content:      'Title',
-      color:        '',
-      font_size:    1.68,
-      font_weight:  400,
-      text_align:   'left',
+      name:        'Title',
+      show:        false,
+      line_breaks: false,
+      content:     'Title',
+      color:       '',
+      font_size:   1.68,
+      font_weight: 400,
+      text_align:  'left',
     },
     {
       ...DEFAULT_FIELD,
-      name:         'Content',
-      show:         true,
-      line_breaks:  false,
-      content:      'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more.\n\nFor more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
-      color:        '',
-      font_size:    1.0,
-      font_weight:  400,
-      text_align:   'left',
+      name:        'Content',
+      show:        true,
+      line_breaks: false,
+      content:     'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more.\n\nFor more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
+      color:       '',
+      font_size:   1.0,
+      font_weight: 400,
+      text_align:  'left',
     },
   ],
 };
@@ -194,7 +158,8 @@ function cmColorPicker(label, value, onChange) {
     <div class="text-field">
       <label>${unsafeHTML(label)}</label>
       <div class="color-picker-row">
-        <input type="color" .value=${value || '#00000000'} @input=${onChange}>
+        <input type="color" .value=${value || '#00000000'} @input=${onChange}
+          @change=${(e) => { if (e.target.value !== '#00000000') onChange(e); }}>
         <chrono-cm-textfield
           .value=${String(value ?? '')}
           @input=${onChange}
@@ -878,7 +843,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       padding-top: 10px;
     }
 
-    /* ── Add / Remove field buttons ────────────────────────────────────────── */
+    /* ── Add field button ──────────────────────────────────────────────────── */
 
     .add-field-row {
       display: flex;
@@ -906,7 +871,7 @@ class ChronoMarkdownCardEditor extends LitElement {
       background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
     }
 
-    /* ── Drag handle and delete button ────────────────────────────────────── */
+    /* ── Drag handle ───────────────────────────────────────────────────────── */
 
     .handle {
       cursor: move;
@@ -920,6 +885,8 @@ class ChronoMarkdownCardEditor extends LitElement {
     .handle > * {
       pointer-events: none;
     }
+
+    /* ── Remove field button ───────────────────────────────────────────────── */
 
     .remove-field-row {
       display: flex;
@@ -986,7 +953,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
       <ha-expansion-panel header="Card" outlined .expanded=${true}>
 
-        <!-- Row 1: Background color / Box shadow -->
+        <!-- Row 1: Background color / Padding -->
         <div class="card-bg-color-padding">
           ${cmColorPicker('Background color\n<i>leave empty for default</i>', c.background_color, e => this._valueChanged('background_color', e))}
           ${cmTextField('Padding\ntop (px)',    c.padding_top,    e => this._valueChanged('padding_top',    e), { type: 'number', step: '1', min: '0' })}
@@ -1009,68 +976,66 @@ class ChronoMarkdownCardEditor extends LitElement {
 
       <ha-sortable handle-selector=".handle" @item-moved=${this._fieldMoved}>
         <div class="fields-list">
-      ${fields.map((field, index) => html`
-        <ha-expansion-panel outlined header=${field.name || `Field ${index + 1}`}>
+          ${fields.map((field, index) => html`
+            <ha-expansion-panel outlined header=${field.name || `Field ${index + 1}`}>
 
+              <div class="handle" slot="leading-icon">
+                <ha-svg-icon .path=${mdiDragHorizontalVariant}></ha-svg-icon>
+              </div>
 
+              <!-- Row 1: Name (full width) -->
+              <div class="field-name">
+                ${cmTextField('Name', field.name, e => this._fieldChanged(index, 'name', e))}
+              </div>
 
-          <div class="handle" slot="leading-icon">
-            <ha-svg-icon .path=${mdiDragHorizontalVariant}></ha-svg-icon>
-          </div>
+              <!-- Row 2: Show / Line breaks toggles -->
+              <div class="field-show-toggles">
+                ${cmToggleField('Show',        field.show        ?? true,  e => this._fieldToggled(index, 'show',        e))}
+                ${cmToggleField('Line breaks', field.line_breaks ?? false, e => this._fieldToggled(index, 'line_breaks', e))}
+              </div>
 
-          <!-- Row 1: Name (full width) -->
-          <div class="field-name">
-            ${cmTextField('Name', field.name, e => this._fieldChanged(index, 'name', e))}
-          </div>
+              <!-- Row 3: Content (full width, textarea) -->
+              <div class="field-content">
+                ${cmTextArea('Content (supports Markdown, HTML and Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
+              </div>
 
-          <!-- Row 2: Show / Line breaks toggles -->
-          <div class="field-show-toggles">
-            ${cmToggleField('Show',        field.show        ?? true, e => this._fieldToggled(index, 'show',        e))}
-            ${cmToggleField('Line breaks', field.line_breaks ?? false, e => this._fieldToggled(index, 'line_breaks', e))}
-          </div>
+              <!-- Row 4: Typography — font color, font size, font weight, line height, text align -->
+              <div class="field-typography">
+                ${cmColorPicker('Font color', field.color, e => this._fieldChanged(index, 'color', e))}
+                ${cmTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
+                ${cmTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
+                ${cmTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
+                ${cmSelectField('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e))}
+              </div>
 
-          <!-- Row 3: Content (full width, textarea) -->
-          <div class="field-content">
-            ${cmTextArea('Content (supports Markdown, HTML and Jinja2)', field.content, e => this._fieldChanged(index, 'content', e))}
-          </div>
+              <!-- Row 5: Background color and padding -->
+              <div class="field-bg-color-padding">
+                ${cmColorPicker('Background color', field.background_color, e => this._fieldChanged(index, 'background_color', e))}
+                ${cmTextField('Padding\ntop (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
+                ${cmTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
+                ${cmTextField('Padding left (px)',   field.padding_left,   e => this._fieldChanged(index, 'padding_left',   e), { type: 'number', step: '1', min: '0' })}
+                ${cmTextField('Padding right (px)',  field.padding_right,  e => this._fieldChanged(index, 'padding_right',  e), { type: 'number', step: '1', min: '0' })}
+              </div>
 
-          <!-- Row 4: Typography — font size, font weight, line height, text align -->
-          <div class="field-typography">
-            ${cmColorPicker('Font color', field.color, e => this._fieldChanged(index, 'color', e))}
-            ${cmTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
-            ${cmTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
-            ${cmTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
-            ${cmSelectField('Text align', field.text_align, this._textAlignOptions, e => this._fieldChanged(index, 'text_align', e))}
-          </div>
+              <!-- Row 6: Border — color, width, radius, style -->
+              <div class="field-border-styling">
+                ${cmColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e))}
+                ${cmTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
+                ${cmTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
+                ${cmSelectField('Style',       field.border_style,  this._borderStyleOptions, e => this._fieldChanged(index, 'border_style',  e))}
+              </div>
 
-          <!-- Row 5: Background color and padding -->
-          <div class="field-bg-color-padding">
-            ${cmColorPicker('Background color', field.background_color, e => this._fieldChanged(index, 'background_color', e))}
-            ${cmTextField('Padding\ntop (px)',    field.padding_top,    e => this._fieldChanged(index, 'padding_top',    e), { type: 'number', step: '1', min: '0' })}
-            ${cmTextField('Padding bottom (px)', field.padding_bottom, e => this._fieldChanged(index, 'padding_bottom', e), { type: 'number', step: '1', min: '0' })}
-            ${cmTextField('Padding left (px)',   field.padding_left,   e => this._fieldChanged(index, 'padding_left',   e), { type: 'number', step: '1', min: '0' })}
-            ${cmTextField('Padding right (px)',  field.padding_right,  e => this._fieldChanged(index, 'padding_right',  e), { type: 'number', step: '1', min: '0' })}
-          </div>
+              <!-- Remove field button -->
+              <div class="remove-field-row">
+                <button
+                  class="remove-field-btn"
+                  ?disabled=${fields.length <= 1}
+                  @click=${() => this._removeField(index)}
+                >Remove field</button>
+              </div>
 
-          <!-- Row 6: Border — color, width, radius, style -->
-          <div class="field-border-styling">
-            ${cmColorPicker('Border color', field.border_color,  e => this._fieldChanged(index, 'border_color', e))}
-            ${cmTextField('Width (px)',     field.border_width,  e => this._fieldChanged(index, 'border_width',  e), { type: 'number', step: '1', min: '0' })}
-            ${cmTextField('Radius (px)',    field.border_radius, e => this._fieldChanged(index, 'border_radius', e), { type: 'number', step: '1', min: '0' })}
-            ${cmSelectField('Style',       field.border_style,  this._borderStyleOptions, e => this._fieldChanged(index, 'border_style',  e))}
-          </div>
-
-          <!-- Remove field button -->
-          <div class="remove-field-row">
-            <button
-              class="remove-field-btn"
-              ?disabled=${fields.length <= 1}
-              @click=${() => this._removeField(index)}
-            >Remove field</button>
-          </div>
-
-        </ha-expansion-panel>
-      `)}
+            </ha-expansion-panel>
+          `)}
         </div>
       </ha-sortable>
 
@@ -1106,11 +1071,10 @@ class ChronoMarkdownCard extends LitElement {
 
   constructor() {
     super();
-    this._config              = null;
-    this._hass                = null;
-    this._fieldValues         = [];
-    this._templateUnsubs      = [];
-    this._resubDebounceTimer  = null;
+    this._config         = null;
+    this._hass           = null;
+    this._fieldValues    = [];
+    this._templateUnsubs = [];
   }
 
   set hass(hass) {
@@ -1128,58 +1092,30 @@ class ChronoMarkdownCard extends LitElement {
   }
 
   setConfig(config) {
-    const newConfig  = { ...DEFAULT_CONFIG, ...config };
-    const oldFields  = this._config?.fields ?? [];
-    const newFields  = newConfig.fields ?? [];
-
-    // Determine whether any field content values have changed.
-    const contentChanged = () => {
-      if (oldFields.length !== newFields.length) return true;
-      return newFields.some((f, i) => f.content !== oldFields[i].content);
-    };
-
-    const isTemplate = (content) =>
-      typeof content === 'string' && content.includes('{{') && content.includes('}}');
-
-    const wasTemplate = oldFields.some(f => isTemplate(f.content));
-
-    this._config = newConfig;
-
-    if (!this._hass) return;
-
-    // No existing subscriptions yet — set up unconditionally.
-    if (this._templateUnsubs.length === 0) {
-      this._setupSubscriptions();
-      return;
-    }
-
-    if (!contentChanged()) return;
-
-    // Transitioning from template to non-template: re-subscribe immediately.
-    const hasTemplate = newFields.some(f => isTemplate(f.content));
-    if (wasTemplate && !hasTemplate) {
-      if (this._resubDebounceTimer !== null) {
-        clearTimeout(this._resubDebounceTimer);
-        this._resubDebounceTimer = null;
+    let needsResubscribe = this._templateUnsubs.length === 0;
+    if (!needsResubscribe && this._config?.fields) {
+      const oldFields = this._config.fields;
+      for (let i = 0; i < oldFields.length; i++) {
+        const oldContent = oldFields[i].content ?? '';
+        if (!config.fields?.[i]) {
+          // Field was removed — if it had a template, we must unsubscribe
+          if (oldContent.includes('{{')) {
+            needsResubscribe = true;
+            break;
+          }
+        } else {
+          const newContent = config.fields[i].content ?? '';
+          if (newContent !== oldContent && (oldContent.includes('{{') || newContent.includes('{{'))) {
+            needsResubscribe = true;
+            break;
+          }
+        }
       }
+    }
+    this._config = { ...DEFAULT_CONFIG, ...config };
+    if (this._hass && needsResubscribe) {
       this._setupSubscriptions();
-      return;
     }
-
-    // Content changed and new content contains a template: debounce re-subscription.
-    if (hasTemplate) {
-      if (this._resubDebounceTimer !== null) {
-        clearTimeout(this._resubDebounceTimer);
-      }
-      this._resubDebounceTimer = setTimeout(() => {
-        this._resubDebounceTimer = null;
-        this._setupSubscriptions();
-      }, 1500);
-      return;
-    }
-
-    // Content changed but no templates involved: re-subscribe immediately (cheap, synchronous).
-    this._setupSubscriptions();
   }
 
   connectedCallback() {
@@ -1237,7 +1173,7 @@ class ChronoMarkdownCard extends LitElement {
     :host {
       display: block;
     }
-    .markdown-container {
+    .text-container {
       box-sizing: border-box;
       position: relative;
       background-color: var(--ha-card-background, var(--card-background-color, white));
@@ -1247,7 +1183,7 @@ class ChronoMarkdownCard extends LitElement {
       border-style: solid;
       box-shadow: var(--ha-card-box-shadow, none);
     }
-    .markdown-layer {
+    .text-layer {
       display: flex;
       flex-direction: column;
     }
@@ -1289,8 +1225,8 @@ class ChronoMarkdownCard extends LitElement {
     const fields = c.fields ?? [];
 
     return html`
-      <div class="markdown-container" style=${styleMap(containerStyles)}>
-        <div class="markdown-layer">
+      <div class="text-container" style=${styleMap(containerStyles)}>
+        <div class="text-layer">
           ${fields.map((field, i) => {
             const fieldStyles = {
               'display':          field.show === false ? 'none' : undefined,
