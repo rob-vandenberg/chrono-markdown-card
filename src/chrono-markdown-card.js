@@ -5,12 +5,13 @@ import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/un
 import { marked }                from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.3.36';
+const CARD_VERSION = '0.3.37';
 
 // ─── MDI icon paths ───────────────────────────────────────────────────────────
 const mdiDragHorizontalVariant = 'M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.3.37: Allow removing all fields including the last one
 // v0.3.36: Replace ha-markdown-element with marked.js + unsafeHTML for full
 //          HTML support including style attributes; Markdown, HTML and Jinja2
 //          all fully supported without sanitization
@@ -1041,7 +1042,6 @@ class ChronoMarkdownCardEditor extends LitElement {
               <div class="remove-field-row">
                 <button
                   class="remove-field-btn"
-                  ?disabled=${fields.length <= 1}
                   @click=${() => this._removeField(index)}
                 >Remove field</button>
               </div>
