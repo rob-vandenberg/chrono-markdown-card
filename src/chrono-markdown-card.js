@@ -1,15 +1,19 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit@2.0.0/index.js?module';
 import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/live.js?module';
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
-import { unsafeHTML } from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
+import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
+import { marked }                from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.2.35';
+const CARD_VERSION = '0.3.36';
 
 // ─── MDI icon paths ───────────────────────────────────────────────────────────
 const mdiDragHorizontalVariant = 'M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.3.36: Replace ha-markdown-element with marked.js + unsafeHTML for full
+//          HTML support including style attributes; Markdown, HTML and Jinja2
+//          all fully supported without sanitization
 // v0.2.35: Simplify cmColorPicker: remove CSS variable resolution, use #000000
 //          as swatch fallback when value is empty, guard @change to prevent
 //          #000000 from being written to config
@@ -1201,16 +1205,16 @@ class ChronoMarkdownCard extends LitElement {
       background-color: transparent;
       border-color: var(--ha-card-border-color, var(--divider-color, #e0e0e0));
     }
-    ha-markdown-element {
+    .markdown-field {
       font-size: inherit;
     }
-    ha-markdown-element a {
+    .markdown-field a {
       color: var(--markdown-link-color, var(--primary-color));
     }
-    ha-markdown-element p:first-child {
+    .markdown-field p:first-child {
       margin-top: 0;
     }
-    ha-markdown-element p:last-child {
+    .markdown-field p:last-child {
       margin-bottom: 0;
     }
   `;
@@ -1252,8 +1256,8 @@ class ChronoMarkdownCard extends LitElement {
             };
 
             return html`
-              <div class="text-field" style=${styleMap(fieldStyles)}>
-                <ha-markdown-element .content=${this._fieldValues[i] ?? ''} ?breaks=${field.line_breaks !== false}></ha-markdown-element>
+              <div class="markdown-field text-field" style=${styleMap(fieldStyles)}>
+                ${unsafeHTML(marked.parse(this._fieldValues[i] ?? '', { breaks: field.line_breaks !== false }))}
               </div>
             `;
           })}
