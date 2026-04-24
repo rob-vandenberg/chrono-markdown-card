@@ -16,7 +16,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validate version format
         run: echo "${{ github.event.inputs.version }}" | grep -E "^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$"
       - name: Install dependencies
@@ -24,11 +24,12 @@ jobs:
       - name: Build
         run: yarn build
       - name: Commit and push
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v10
         with:
           add: '["src/chrono-markdown-card.js", "dist/chrono-markdown-card.js"]'
           message: "Publishing version ${{ github.event.inputs.version }}"
           tag: "v${{ github.event.inputs.version }}"
+          tag_push: '--force'
       - name: Publish Github release
         uses: ncipollo/release-action@v1
         with:

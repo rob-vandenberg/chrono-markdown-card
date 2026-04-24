@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient for Blue Square App Icon -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4A7FD5" />
+      <stop offset="100%" stop-color="#284890" />
+    </linearGradient>
+
+    <!-- Drop Shadow for the App Container -->
+    <filter id="appShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+
+    <!-- Subtle Drop Shadow for the White M and Arrow -->
+    <filter id="glyphShadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#000000" flood-opacity="0.25" />
+    </filter>
+
+    <!-- Glossy Highlight Gradient for App Surface -->
+    <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- App Icon Base Shape (Rounded Square) -->
+  <rect x="64" y="64" width="384" height="384" rx="88" ry="88" fill="url(#bgGradient)" filter="url(#appShadow)" />
+
+  <!-- Top Gloss Highlight -->
+  <path d="M 152 64 H 360 C 408 64 448 104 448 152 V 220 C 350 180 200 180 64 220 V 152 C 64 104 104 64 152 64 Z" fill="url(#gloss)" />
+
+  <!-- Content Group (Letter M and Arrow) -->
+  <g fill="#FFFFFF" filter="url(#glyphShadow)">
+    <!-- Letter M -->
+    <path d="M 144 322 V 190 H 178 L 213 252 L 248 190 H 282 V 322 H 249 V 232 L 219 285 H 207 L 177 232 V 322 H 144 Z" />
+
+    <!-- Downward Arrow -->
+    <path d="M 302 230 H 332 V 282 H 358 L 317 330 L 276 282 H 302 V 230 Z" />
+  </g>
+</svg>

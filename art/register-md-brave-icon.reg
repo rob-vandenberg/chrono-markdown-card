@@ -1,0 +1,17 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\Classes\MarkdownMark.md]
+@="Markdown Document"
+
+[HKEY_CURRENT_USER\Software\Classes\MarkdownMark.md\DefaultIcon]
+@="C:\\Users\\Rob\\Pictures\\Icons\\markdown-mark.ico"
+
+[HKEY_CURRENT_USER\Software\Classes\MarkdownMark.md\shell]
+
+[HKEY_CURRENT_USER\Software\Classes\MarkdownMark.md\shell\open]
+
+[HKEY_CURRENT_USER\Software\Classes\MarkdownMark.md\shell\open\command]
+@="\"C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe\" \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\.md\OpenWithProgids]
+"MarkdownMark.md"=hex(0):
