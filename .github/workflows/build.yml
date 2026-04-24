@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Get version
         id: version
@@ -31,7 +31,7 @@ jobs:
         run: yarn build
 
       - name: Commit built file
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v10
         with:
           add: '["dist/chrono-markdown-card.js"]'
           message: "Auto-build minified JS from source v${{ steps.version.outputs.version }}"

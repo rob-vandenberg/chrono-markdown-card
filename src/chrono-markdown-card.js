@@ -3,14 +3,15 @@ import { live }                  from 'https://unpkg.com/lit@2.0.0/directives/li
 import { styleMap }              from 'https://unpkg.com/lit@2.0.0/directives/style-map.js?module';
 import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/unsafe-html.js?module';
 import { marked }                from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
-
+ 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.4.43';
+const CARD_VERSION = '0.4.44';
 
 // ─── MDI icon paths ───────────────────────────────────────────────────────────
 const mdiDragHorizontalVariant = 'M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.4.44: Rename field property 'color' to 'font_color'
 // v0.4.43: Set card and field padding defaults; add letter_spacing field;
 //          set Title field font_size and padding_bottom defaults;
 //          set card border defaults
@@ -69,33 +70,33 @@ const DEFAULT_FIELD = {
   show:             true,
   line_breaks:      false,
   content:          '',
-  color:            '',
+  font_color:       '',
   font_size:        '',
   font_weight:      '',
-  text_align:       '',
   line_height:      '',
   letter_spacing:   '-0.012em',
+  text_align:       '',
   background_color: '',
-  border_width:     '',
-  border_style:     '',
-  border_color:     '',
-  border_radius:    '',
   padding_top:      8,
   padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
+  border_color:     '',
+  border_width:     0,
+  border_radius:    12,
+  border_style:     'solid',
 };
 
 const DEFAULT_CONFIG = {
   background_color: '',
-  border_width:     1,
-  border_style:     'solid',
-  border_color:     '',
-  border_radius:    12,
   padding_top:      4,
   padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
+  border_color:     '',
+  border_width:     1,
+  border_radius:    12,
+  border_style:     'solid',
   box_shadow:       '',
   fields: [
     {
@@ -109,10 +110,10 @@ const DEFAULT_CONFIG = {
     },
     {
       ...DEFAULT_FIELD,
-      name:        'Content',
-      show:        true,
-      line_breaks: false,
-      content:     'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more.\n\nFor more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
+      name:           'Content',
+      show:           true,
+      line_breaks:    false,
+      content:        'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more.\n\nFor more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
     },
   ],
 };
@@ -1017,7 +1018,7 @@ class ChronoMarkdownCardEditor extends LitElement {
 
               <!-- Row 4: Typography — font color, font size, font weight, line height, text align -->
               <div class="field-typography">
-                ${cmColorPicker('Font color', field.color, e => this._fieldChanged(index, 'color', e))}
+                ${cmColorPicker('Font color', field.font_color, e => this._fieldChanged(index, 'font_color', e))}
                 ${cmTextField('Font size',      field.font_size,   e => this._fieldChanged(index, 'font_size',   e), { type: 'number', step: '0.1', min: '0' })}
                 ${cmTextField('Font weight',    field.font_weight, e => this._fieldChanged(index, 'font_weight', e), { type: 'number', step: '100', min: '100', max: '900' })}
                 ${cmTextField('Line height',    field.line_height, e => this._fieldChanged(index, 'line_height', e), { type: 'number', step: '0.1', min: '0' })}
@@ -1248,7 +1249,7 @@ class ChronoMarkdownCard extends LitElement {
           ${fields.map((field, i) => {
             const fieldStyles = {
               'display':          field.show === false ? 'none' : undefined,
-              'color':            field.color            || undefined,
+              'color':            field.font_color       || undefined,
               'font-size':        (field.font_size   !== '' && field.font_size   != null) ? `${field.font_size}em`  : undefined,
               'font-weight':      (field.font_weight !== '' && field.font_weight != null) ? `${field.font_weight}`  : undefined,
               'text-align':       field.text_align       || undefined,
