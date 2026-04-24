@@ -5,12 +5,23 @@ import { unsafeHTML }            from 'https://unpkg.com/lit@2.0.0/directives/un
 import { marked }                from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 
 // ─── Version ──────────────────────────────────────────────────────────────────
-const CARD_VERSION = '0.3.37';
+const CARD_VERSION = '0.4.43';
 
 // ─── MDI icon paths ───────────────────────────────────────────────────────────
 const mdiDragHorizontalVariant = 'M9,3H11V5H9V3M13,3H15V5H13V3M9,7H11V9H9V7M13,7H15V9H13V7M9,11H11V13H9V11M13,11H15V13H13V11M9,15H11V17H9V15M13,15H15V17H13V15M9,19H11V21H9V19M13,19H15V21H13V19Z';
 
 // ─── Version History ──────────────────────────────────────────────────────────
+// v0.4.43: Set card and field padding defaults; add letter_spacing field;
+//          set Title field font_size and padding_bottom defaults;
+//          set card border defaults
+// v0.4.42: Remove all explicit non-empty styling values from default fields;
+//          all fields now start fully empty, falling back to HA defaults
+// v0.4.41: All DEFAULT_FIELD numeric values set to ''; remove DEFAULT_CONFIG/
+//          DEFAULT_FIELD merges from setConfig in both editor and card so empty
+//          values are preserved and fall back to HA defaults
+// v0.4.40: Allow empty values for all fields; empty numeric fields stored as ''
+//          and omitted from styleMap; padding split into four individual
+//          properties; cmParseNumber updated accordingly
 // v0.3.37: Allow removing all fields including the last one
 // v0.3.36: Replace ha-markdown-element with marked.js + unsafeHTML for full
 //          HTML support including style attributes; Markdown, HTML and Jinja2
@@ -59,15 +70,16 @@ const DEFAULT_FIELD = {
   line_breaks:      false,
   content:          '',
   color:            '',
-  font_size:        1.0,
-  font_weight:      400,
-  text_align:       'left',
-  line_height:      1.4,
+  font_size:        '',
+  font_weight:      '',
+  text_align:       '',
+  line_height:      '',
+  letter_spacing:   '-0.012em',
   background_color: '',
-  border_width:     0,
-  border_style:     'solid',
+  border_width:     '',
+  border_style:     '',
   border_color:     '',
-  border_radius:    12,
+  border_radius:    '',
   padding_top:      8,
   padding_bottom:   8,
   padding_left:     8,
@@ -80,7 +92,7 @@ const DEFAULT_CONFIG = {
   border_style:     'solid',
   border_color:     '',
   border_radius:    12,
-  padding_top:      8,
+  padding_top:      4,
   padding_bottom:   8,
   padding_left:     8,
   padding_right:    8,
@@ -88,14 +100,12 @@ const DEFAULT_CONFIG = {
   fields: [
     {
       ...DEFAULT_FIELD,
-      name:        'Title',
-      show:        false,
-      line_breaks: false,
-      content:     'Title',
-      color:       '',
-      font_size:   1.68,
-      font_weight: 400,
-      text_align:  'left',
+      name:           'Title',
+      show:           false,
+      line_breaks:    false,
+      content:        'Title',
+      font_size:      1.7,
+      padding_bottom: 12,
     },
     {
       ...DEFAULT_FIELD,
@@ -103,10 +113,6 @@ const DEFAULT_CONFIG = {
       show:        true,
       line_breaks: false,
       content:     'The **Markdown** card allows you to write any text. You can style it **bold**, *italicized*, ~strikethrough~ etc. You can do images, links, and more.\n\nFor more information see the [Markdown Cheatsheet](https://commonmark.org/help).',
-      color:       '',
-      font_size:   1.0,
-      font_weight: 400,
-      text_align:  'left',
     },
   ],
 };
@@ -125,14 +131,13 @@ const NUMERIC_FIELD_KEYS = new Set([
 ]);
 
 // ─── cmParseNumber ────────────────────────────────────────────────────────────
-// Mirrors ha-form-float._handleInput logic exactly.
-// Returns the parsed number, undefined if the value is empty,
+// Returns the parsed number, '' if the value is empty (stored as-is in config),
 // or null to signal "return early, do not fire config-changed".
 function cmParseNumber(raw) {
   const v = String(raw).replace(',', '.');
   if (v === '-' || v === '-0' || v.endsWith('.')) return null;
   if (v.includes('.') && v.endsWith('0'))         return null;
-  if (v === '')                                    return undefined;
+  if (v === '')                                    return '';
   const n = parseFloat(v);
   return isNaN(n) ? null : n;
 }
@@ -634,7 +639,7 @@ class ChronoMarkdownCardEditor extends LitElement {
   };
 
   setConfig(config) {
-    this._config = { ...DEFAULT_CONFIG, ...config };
+    this._config = config;
   }
 
   _valueChanged(key, e) {
@@ -643,9 +648,8 @@ class ChronoMarkdownCardEditor extends LitElement {
     let value;
     if (NUMERIC_CONFIG_KEYS.has(key)) {
       const parsed = cmParseNumber(raw);
-      if (parsed === null)      return;
-      if (parsed === undefined) value = DEFAULT_CONFIG[key];
-      else                      value = parsed;
+      if (parsed === null) return;
+      value = parsed;
     } else {
       value = raw;
     }
@@ -659,9 +663,8 @@ class ChronoMarkdownCardEditor extends LitElement {
     let value;
     if (NUMERIC_FIELD_KEYS.has(key)) {
       const parsed = cmParseNumber(raw);
-      if (parsed === null)      return;
-      if (parsed === undefined) value = DEFAULT_FIELD[key];
-      else                      value = parsed;
+      if (parsed === null) return;
+      value = parsed;
     } else {
       value = raw;
     }
@@ -1124,7 +1127,7 @@ class ChronoMarkdownCard extends LitElement {
         }
       }
     }
-    this._config = { ...DEFAULT_CONFIG, ...config };
+    this._config = config;
     if (this._hass && needsResubscribe) {
       this._setupSubscriptions();
     }
@@ -1226,11 +1229,14 @@ class ChronoMarkdownCard extends LitElement {
 
     const containerStyles = {
       'background-color': c.background_color || undefined,
-      'border-width':     c.border_width !== undefined ? `${c.border_width}px` : undefined,
+      'border-width':     (c.border_width !== '' && c.border_width != null) ? `${c.border_width}px` : undefined,
       'border-style':     c.border_style  || undefined,
       'border-color':     c.border_color  || undefined,
-      'border-radius':    c.border_radius !== undefined ? `${c.border_radius}px` : undefined,
-      'padding':          `${c.padding_top}px ${c.padding_right}px ${c.padding_bottom}px ${c.padding_left}px`,
+      'border-radius':    (c.border_radius !== '' && c.border_radius != null) ? `${c.border_radius}px` : undefined,
+      'padding-top':      (c.padding_top    !== '' && c.padding_top    != null) ? `${c.padding_top}px`    : undefined,
+      'padding-bottom':   (c.padding_bottom !== '' && c.padding_bottom != null) ? `${c.padding_bottom}px` : undefined,
+      'padding-left':     (c.padding_left   !== '' && c.padding_left   != null) ? `${c.padding_left}px`   : undefined,
+      'padding-right':    (c.padding_right  !== '' && c.padding_right  != null) ? `${c.padding_right}px`  : undefined,
       'box-shadow':       c.box_shadow    || undefined,
     };
 
@@ -1243,16 +1249,20 @@ class ChronoMarkdownCard extends LitElement {
             const fieldStyles = {
               'display':          field.show === false ? 'none' : undefined,
               'color':            field.color            || undefined,
-              'font-size':        `${field.font_size}em`,
-              'font-weight':      `${field.font_weight}`,
+              'font-size':        (field.font_size   !== '' && field.font_size   != null) ? `${field.font_size}em`  : undefined,
+              'font-weight':      (field.font_weight !== '' && field.font_weight != null) ? `${field.font_weight}`  : undefined,
               'text-align':       field.text_align       || undefined,
-              'line-height':      `${field.line_height}`,
+              'line-height':      (field.line_height !== '' && field.line_height != null) ? `${field.line_height}`  : undefined,
+              'letter-spacing':   field.letter_spacing   || undefined,
               'background-color': field.background_color || undefined,
-              'border-width':     field.border_width !== undefined ? `${field.border_width}px` : undefined,
+              'border-width':     (field.border_width !== '' && field.border_width != null) ? `${field.border_width}px` : undefined,
               'border-style':     field.border_style  || undefined,
               'border-color':     field.border_color  || undefined,
-              'border-radius':    field.border_radius !== undefined ? `${field.border_radius}px` : undefined,
-              'padding':          `${field.padding_top}px ${field.padding_right}px ${field.padding_bottom}px ${field.padding_left}px`,
+              'border-radius':    (field.border_radius !== '' && field.border_radius != null) ? `${field.border_radius}px` : undefined,
+              'padding-top':      (field.padding_top    !== '' && field.padding_top    != null) ? `${field.padding_top}px`    : undefined,
+              'padding-bottom':   (field.padding_bottom !== '' && field.padding_bottom != null) ? `${field.padding_bottom}px` : undefined,
+              'padding-left':     (field.padding_left   !== '' && field.padding_left   != null) ? `${field.padding_left}px`   : undefined,
+              'padding-right':    (field.padding_right  !== '' && field.padding_right  != null) ? `${field.padding_right}px`  : undefined,
             };
 
             return html`
